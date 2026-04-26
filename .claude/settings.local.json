@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(unzip -p \"/Users/abhishek/Downloads/MyEx-pense \\(1\\).zip\" \"design_handoff_myexpense/DESIGN_BIBLE.md\")",
+      "Bash(unzip -p \"/Users/abhishek/Downloads/MyEx-pense \\(1\\).zip\" \"design_handoff_myexpense/screens-onboarding.jsx\")",
+      "Bash(./gradlew assembleDebug)",
+      "Bash(/usr/libexec/java_home)",
+      "Bash(export JAVA_HOME=$\\(/usr/libexec/java_home \\))",
+      "Read(//Library/Java/JavaVirtualMachines/**)",
+      "Read(//Users/abhishek/Library/Java/**)",
+      "Read(//Applications/**)",
+      "Bash(export JAVA_HOME=/Users/abhishek/.gradle/jdks/eclipse_adoptium-17-aarch64-os_x.2/jdk-17.0.17+10/Contents/Home)",
+      "Bash(export PATH=\"$JAVA_HOME/bin:$PATH\")",
+      "Bash(java -version)"
+    ]
+  }
+}
