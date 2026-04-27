@@ -1,6 +1,5 @@
 *.iml
 .gradle
-.gitignore
 .claude
 .idea
 /local.properties
