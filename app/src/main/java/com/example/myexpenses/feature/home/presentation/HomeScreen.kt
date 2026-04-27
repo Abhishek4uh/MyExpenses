@@ -68,6 +68,7 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -127,11 +128,11 @@ fun HomeScreen(
     onNavigateToDetail: (transactionId: String) -> Unit,
     onNavigateToSettings: () -> Unit = {},
     onNavigateToAllTransactions: () -> Unit = {},
-    viewModel: HomeViewModel = hiltViewModel()
-) {
+    viewModel: HomeViewModel = hiltViewModel()){
+
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
-    // Total reserved space at the bottom: floating nav bar + system nav inset.
+    //Total reserved space at the bottom: floating nav bar + system nav inset.
     // Used everywhere this screen pads its scrollable content / FAB.
     val systemNavInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val bottomBarInset = BottomNavBarReservedHeight + systemNavInset
@@ -141,24 +142,25 @@ fun HomeScreen(
     val userName by viewModel.userName.collectAsStateWithLifecycle()
     val isSmsEnabled by viewModel.isSmsEnabled.collectAsStateWithLifecycle()
     var fabExpanded by remember { mutableStateOf(false) }
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     // ── SMS permission flow (in-place) ───────────────────────────────────────
     var showSmsRationale by remember { mutableStateOf(false) }
     var smsPermanentlyDenied by remember { mutableStateOf(false) }
     val smsPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
+        ActivityResultContracts.RequestPermission()){ granted ->
         if (granted) {
             viewModel.toggleSmsReader(true)
             smsPermanentlyDenied = false
-        } else {
+        }
+        else {
             smsPermanentlyDenied = !ActivityCompat.shouldShowRequestPermissionRationale(
                 context as Activity, Manifest.permission.READ_SMS
             )
         }
     }
 
-    if (showSmsRationale) {
+    if (showSmsRationale){
         AlertDialog(
             onDismissRequest = { showSmsRationale = false },
             containerColor = BgElev1,
@@ -178,7 +180,8 @@ fun HomeScreen(
                                 data = Uri.fromParts("package", context.packageName, null)
                             }
                             context.startActivity(intent)
-                        } else {
+                        }
+                        else {
                             smsPermissionLauncher.launch(Manifest.permission.READ_SMS)
                         }
                     },

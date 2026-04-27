@@ -21,46 +21,30 @@ private const val TAG = "ReminderScheduler"
  * has a 15-minute minimum interval and Doze can delay it arbitrarily —
  * we need exact 12:00 AM and 12:00 PM firing. AlarmManager.setExactAndAllowWhileIdle
  * is the documented best practice for time-of-day notifications.
- *
- * Each alarm is one-shot. The receiver re-schedules itself for the next
- * day after firing. This is the standard pattern — `setRepeating` was
- * deprecated for inexactness, and `setExactAndAllowWhileIdle` is one-shot
- * by design.
  */
 @Singleton
 class ReminderScheduler @Inject constructor(@ApplicationContext private val context: Context) {
     private val alarmManager: AlarmManager get() = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    /** Turn reminders on. Schedules both 12 AM and 12 PM alarms for today/tomorrow. */
     fun enable() {
-        Timber.tag(TAG).d("enable: scheduling 00:00 + 12:00 reminders")
+        Timber.tag(TAG).d("enable: scheduling reminders")
         scheduleNext(Slot.MIDNIGHT)
         scheduleNext(Slot.NOON)
     }
 
-    /** Turn reminders off. Cancels both pending alarms. */
     fun disable() {
-        Timber.tag(TAG).d("disable: cancelling all reminders")
+        Timber.tag(TAG).d("disable: cancelling reminders")
         Slot.entries.forEach { slot ->
             alarmManager.cancel(pendingIntentFor(slot))
         }
     }
 
-    /**
-     * Schedule the next firing of [slot]. If the slot's time has already
-     * passed today, schedules for tomorrow.
-     *
-     * Use `setExactAndAllowWhileIdle` so the alarm fires through Doze mode.
-     * Falls back to `setExact` on older devices that don't have the new API.
-     */
     fun scheduleNext(slot: Slot) {
         val triggerAt = slot.nextTriggerMillis()
         val pending = pendingIntentFor(slot)
 
-        // On Android 12+ exact alarms require the runtime permission. We
-        // declared SCHEDULE_EXACT_ALARM in the manifest; check at runtime
-        // before calling the exact API to avoid SecurityException on
-        // devices where the user revoked it.
+        // Android 12+ requires exact alarm permission for setExactAndAllowWhileIdle.
+        // We use USE_EXACT_ALARM in manifest which is granted by default on many devices.
         val canExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             alarmManager.canScheduleExactAlarms()
         } else true
@@ -75,14 +59,13 @@ class ReminderScheduler @Inject constructor(@ApplicationContext private val cont
                 alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP, triggerAt, pending
                 )
-                Timber.tag(TAG).d("scheduled INEXACT ${slot.name} at $triggerAt (no exact perm)")
+                Timber.tag(TAG).d("scheduled INEXACT ${slot.name} at $triggerAt")
             }
         } catch (se: SecurityException) {
-            // Race: permission revoked between check and call
+            Timber.tag(TAG).w(se, "SecurityException while scheduling exact alarm")
             alarmManager.setAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP, triggerAt, pending
             )
-            Timber.tag(TAG).w(se, "SecurityException — fell back to inexact for ${slot.name}")
         }
     }
 

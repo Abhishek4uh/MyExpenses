@@ -1,5 +1,10 @@
 package com.example.myexpenses.feature.settings.presentation
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,6 +35,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -48,6 +54,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
@@ -57,9 +64,12 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.toColorInt
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.myexpenses.core.common.TransactionType
+import com.example.myexpenses.core.notification.NotificationHelper
 import com.example.myexpenses.core.ui.theme.Accents
 import com.example.myexpenses.core.ui.theme.AppColors
 import com.example.myexpenses.core.ui.theme.BgBase
@@ -70,8 +80,6 @@ import com.example.myexpenses.core.ui.theme.SerifFamily
 import com.example.myexpenses.core.ui.theme.TextFaint
 import com.example.myexpenses.core.ui.theme.TextMuted
 import com.example.myexpenses.core.ui.theme.TextPrimary
-import androidx.core.graphics.toColorInt
-import java.util.Locale
 import androidx.compose.ui.platform.LocalLocale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,7 +89,17 @@ fun SettingsDetailScreen(
     onNavigateBack: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()){
 
+    val context = LocalContext.current
     val prefs by viewModel.preferences.collectAsStateWithLifecycle()
+
+    // Permission launcher for enabling daily reminders from the detail screen.
+    // Without this, the toggle calls toggleReminders(true) directly which would
+    // schedule alarms but notifications would silently drop on Android 13+ if the
+    // POST_NOTIFICATIONS permission isn't granted.
+    val notificationPermLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> if (granted) viewModel.toggleReminders(true) }
+
     val title = when (settingsKey) {
         "profile" -> "Edit Profile"
         "notifications" -> "Reminders"
@@ -128,7 +146,22 @@ fun SettingsDetailScreen(
                 )
                 "notifications" -> NotificationsContent(
                     enabled = prefs.isRemindersEnabled,
-                    onToggle = viewModel::toggleReminders,
+                    onToggle = { enabled ->
+                        if (!enabled) {
+                            viewModel.toggleReminders(false)
+                        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            val granted = ContextCompat.checkSelfPermission(
+                                context, Manifest.permission.POST_NOTIFICATIONS
+                            ) == PackageManager.PERMISSION_GRANTED
+                            if (granted) viewModel.toggleReminders(true)
+                            else notificationPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            viewModel.toggleReminders(true)
+                        }
+                    },
+                    onTestNotification = {
+                        NotificationHelper.showReminderNotification(context, "Daily Reminder")
+                    },
                 )
                 "categories" -> CategoriesContent(
                     stats = viewModel.categoryStats.collectAsStateWithLifecycle().value,
@@ -233,6 +266,7 @@ private fun ProfileEditContent(currentName: String, onSave: (String) -> Unit) {
 private fun NotificationsContent(
     enabled: Boolean,
     onToggle: (Boolean) -> Unit,
+    onTestNotification: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
@@ -253,6 +287,18 @@ private fun NotificationsContent(
             checked = enabled,
             onCheckedChange = onToggle
         )
+
+        if (enabled) {
+            OutlinedButton(
+                onClick = onTestNotification,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(14.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Accents.Amber.copy(alpha = 0.5f)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Accents.Amber)
+            ) {
+                Text("Send test notification", style = MaterialTheme.typography.labelLarge)
+            }
+        }
     }
 }
 

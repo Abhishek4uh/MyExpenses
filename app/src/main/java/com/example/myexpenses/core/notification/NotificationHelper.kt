@@ -1,13 +1,18 @@
 package com.example.myexpenses.core.notification
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import timber.log.Timber
 
 const val CHANNEL_REMINDER = "expense_reminder"
 const val CHANNEL_SYNC = "expense_sync"
@@ -67,6 +72,18 @@ object NotificationHelper {
             context, 1, addIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+
+        // On Android 13+ POST_NOTIFICATIONS is a runtime permission; nm.notify() silently
+        // drops the notification if it isn't granted, so check first to surface the issue.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = ContextCompat.checkSelfPermission(
+                context, Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                Timber.tag("NotificationHelper").w("POST_NOTIFICATIONS not granted — skipping notify")
+                return
+            }
+        }
 
         val notification = NotificationCompat.Builder(context, CHANNEL_REMINDER)
             .setSmallIcon(android.R.drawable.ic_dialog_info)

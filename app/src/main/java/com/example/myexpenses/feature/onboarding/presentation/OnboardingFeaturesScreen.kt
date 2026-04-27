@@ -1,6 +1,13 @@
 package com.example.myexpenses.feature.onboarding.presentation
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +34,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,10 +43,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.myexpenses.core.ui.theme.Accents
 import com.example.myexpenses.core.ui.theme.BgBase
 import com.example.myexpenses.core.ui.theme.BgElev2
+import com.example.myexpenses.core.ui.theme.MyExpensesTheme
 import com.example.myexpenses.core.ui.theme.Spacing
 import com.example.myexpenses.core.ui.theme.TextPrimary
 import com.example.myexpenses.core.ui.theme.TextTertiary
@@ -83,20 +93,17 @@ fun OnboardingFeaturesScreen(onNavigateToAuth: () -> Unit) {
                     ),
                     radius = r2, center = c2
                 )
-            }
-    ) {
+            }){
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-        ) {
+                .statusBarsPadding()){
             // Skip
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.xxl, vertical = Spacing.xl),
-                contentAlignment = Alignment.CenterEnd
-            ) {
+                contentAlignment = Alignment.CenterEnd){
                 Text(
                     text = "Skip",
                     style = MaterialTheme.typography.bodyMedium,
@@ -110,16 +117,14 @@ fun OnboardingFeaturesScreen(onNavigateToAuth: () -> Unit) {
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
+                contentAlignment = Alignment.Center){
                 FeatureTilesGrid()
             }
 
             // Text area
             Column(
                 modifier = Modifier.padding(horizontal = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+                verticalArrangement = Arrangement.spacedBy(12.dp)){
                 Text(
                     text = "Smart features\nbuilt in.",
                     style = MaterialTheme.typography.headlineLarge,
@@ -138,8 +143,7 @@ fun OnboardingFeaturesScreen(onNavigateToAuth: () -> Unit) {
                     .fillMaxWidth()
                     .padding(horizontal = 32.dp, vertical = 32.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+                verticalAlignment = Alignment.CenterVertically){
                 PageDotsIndicator(currentPage = 1, totalPages = 2)
 
                 Box(
@@ -154,8 +158,7 @@ fun OnboardingFeaturesScreen(onNavigateToAuth: () -> Unit) {
                         )
                         .clip(CircleShape)
                         .background(Accents.Amber)
-                        .clickable(onClick = onNavigateToAuth)
-                ) {
+                        .clickable(onClick = onNavigateToAuth)){
                     Icon(
                         Icons.AutoMirrored.Outlined.ArrowForward,
                         contentDescription = "Get Started",
@@ -164,7 +167,6 @@ fun OnboardingFeaturesScreen(onNavigateToAuth: () -> Unit) {
                     )
                 }
             }
-
             Spacer(Modifier.height(Spacing.xxl))
         }
     }
@@ -199,20 +201,36 @@ internal fun FeatureTilesGrid() {
 
 @Composable
 private fun FeatureTileCard(tile: FeatureTile, modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "border_anim")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.15f,
+        targetValue = 0.45f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "border_alpha"
+    )
+
     Column(
         verticalArrangement = Arrangement.spacedBy(14.dp),
         modifier = modifier
+            .border(
+                width = 1.5.dp,
+                brush = Brush.verticalGradient(
+                    listOf(tile.tint.copy(alpha), Color.Transparent)
+                ),
+                shape = RoundedCornerShape(18.dp)
+            )
             .clip(RoundedCornerShape(18.dp))
             .background(BgElev2)
-            .padding(horizontal = 16.dp, vertical = 20.dp)
-    ) {
+            .padding(horizontal = 16.dp, vertical = 20.dp)){
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(40.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(tile.tint.copy(0.14f))
-        ) {
+                .background(tile.tint.copy(0.14f))){
             Icon(
                 imageVector = tile.icon,
                 contentDescription = tile.label,
@@ -225,6 +243,18 @@ private fun FeatureTileCard(tile: FeatureTile, modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.bodyMedium,
             color = TextPrimary,
             fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun OnboardingFeaturesScreenPreview() {
+    MyExpensesTheme {
+        OnboardingFeaturesScreen(
+            onNavigateToAuth = {
+
+            }
         )
     }
 }
