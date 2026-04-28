@@ -89,8 +89,8 @@ import com.example.myexpenses.feature.main.presentation.BottomNavBarReservedHeig
 @Composable
 fun SettingsScreen(
     onNavigateToDetail: (key: String) -> Unit,
-    viewModel: SettingsViewModel = hiltViewModel()
-) {
+    viewModel: SettingsViewModel = hiltViewModel()){
+
     val context = LocalContext.current
     val prefs by viewModel.preferences.collectAsStateWithLifecycle()
     val firstLetter = prefs.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
@@ -104,7 +104,8 @@ fun SettingsScreen(
         if (granted) {
             viewModel.toggleSmsReader(true)
             smsPermanentlyDenied = false
-        } else {
+        }
+        else {
             viewModel.toggleSmsReader(false)
             smsPermanentlyDenied = !ActivityCompat.shouldShowRequestPermissionRationale(
                 context as Activity, Manifest.permission.READ_SMS
@@ -115,8 +116,9 @@ fun SettingsScreen(
     // ── Reminders permission state ───────────────────────────────────────────
     var showRemindersRationale by remember { mutableStateOf(false) }
     val remindersPermLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted -> if (granted) viewModel.toggleReminders(true) }
+        ActivityResultContracts.RequestPermission()) {granted ->
+        if (granted) viewModel.toggleReminders(true)
+    }
 
     // ── Delete confirmation ──────────────────────────────────────────────────
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -124,7 +126,7 @@ fun SettingsScreen(
         WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
     // ── Dialogs ──────────────────────────────────────────────────────────────
-    if (showSmsRationale) {
+    if (showSmsRationale){
         AlertDialog(
             onDismissRequest = { showSmsRationale = false },
             containerColor = BgElev1,
@@ -150,7 +152,7 @@ fun SettingsScreen(
         )
     }
 
-    if (showRemindersRationale) {
+    if (showRemindersRationale){
         AlertDialog(
             onDismissRequest = { showRemindersRationale = false },
             containerColor = BgElev1,
@@ -217,8 +219,7 @@ fun SettingsScreen(
             // in a Scaffold, so each screen is responsible for its own top
             // inset.
             .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-    ) {
+            .verticalScroll(rememberScrollState())){
         // Heading
         Spacer(Modifier.height(12.dp))
         Text(
@@ -508,8 +509,7 @@ private fun RowIcon(icon: ImageVector) {
         modifier = Modifier
             .size(34.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(BgElev4)
-    ) {
+            .background(BgElev4)){
         Icon(icon, contentDescription = null, tint = TextTertiary, modifier = Modifier.size(16.dp))
     }
 }

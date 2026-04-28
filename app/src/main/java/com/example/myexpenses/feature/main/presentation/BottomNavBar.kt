@@ -192,7 +192,7 @@ private fun GlassNavItem(
                 imageVector = item.icon,
                 contentDescription = item.label,
                 tint = tint,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(20.dp)
             )
         }
         //Label — wraps to its natural intrinsic height (no fixed-height

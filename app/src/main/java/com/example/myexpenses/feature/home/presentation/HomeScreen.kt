@@ -69,6 +69,7 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -87,6 +88,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLocale
@@ -142,7 +144,6 @@ fun HomeScreen(
     val userName by viewModel.userName.collectAsStateWithLifecycle()
     val isSmsEnabled by viewModel.isSmsEnabled.collectAsStateWithLifecycle()
     var fabExpanded by remember { mutableStateOf(false) }
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     // ── SMS permission flow (in-place) ───────────────────────────────────────
     var showSmsRationale by remember { mutableStateOf(false) }
@@ -233,8 +234,7 @@ fun HomeScreen(
             // list item is always accessible above both the FAB and the bar.
             contentPadding = PaddingValues(
                 bottom = innerPadding.calculateBottomPadding() + 80.dp + bottomBarInset
-            )
-        ) {
+            )){
             // Top app bar — plain, avatar/greeting + sync action (no notif bell)
             item {
                 HomeTopBar(
@@ -244,11 +244,11 @@ fun HomeScreen(
                     onSyncClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         viewModel.syncSmsTransactions()
-                    },
+                    }
                 )
             }
 
-            // Balance card — mesh-gradient block separate from the top bar
+            //Balance card — mesh-gradient block separate from the top bar
             item {
                 BalanceGradientCard(
                     uiState = uiState,
@@ -257,8 +257,8 @@ fun HomeScreen(
                 )
             }
 
-            // Period tabs — sticky so they remain visible while transactions scroll
-            stickyHeader {
+            //Period tabs — sticky so they remain visible while transactions scroll
+            item {
                 Box(Modifier.fillMaxWidth().background(Color.Transparent)) {
                     PeriodTabsRow(
                         selectedPeriod = selectedPeriod,
@@ -278,10 +278,11 @@ fun HomeScreen(
                 }
             }
 
-            // Content
+            //Content
             when (val state = uiState) {
-                HomeUiState.Loading -> item { ShimmerContent() }
-
+                HomeUiState.Loading -> item {
+                    ShimmerContent()
+                }
                 is HomeUiState.Success -> {
                     item {
                         RecentActivityHeader(
@@ -296,11 +297,13 @@ fun HomeScreen(
 
                     if (state.recentTransactions.isEmpty()) {
                         item { EmptyTransactions() }
-                    } else {
+                    }
+                    else {
                         items(
                             items = state.recentTransactions,
-                            key = { it.id }
-                        ) { transaction ->
+                            key = {
+                                it.id
+                            }){ transaction ->
                             TransactionItem(
                                 transaction = transaction,
                                 onClick = { onNavigateToDetail(transaction.id) },
@@ -310,7 +313,6 @@ fun HomeScreen(
                         }
                     }
                 }
-
                 is HomeUiState.Error -> item {
                     ErrorContent(
                         message = state.message,
@@ -338,12 +340,11 @@ private fun HomeTopBar(
         in 12..16 -> "Good afternoon,"
         else -> "Good evening,"
     }
-
     val infiniteTransition = rememberInfiniteTransition(label = "topbar_sync")
     val syncRotation by infiniteTransition.animateFloat(
         initialValue = 0f, targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            tween(1_200, easing = LinearEasing), RepeatMode.Restart
+            tween(600, easing = LinearEasing), RepeatMode.Restart
         ),
         label = "topbar_sync_rotation"
     )
@@ -359,8 +360,7 @@ private fun HomeTopBar(
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+            verticalAlignment = Alignment.CenterVertically){
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -370,8 +370,7 @@ private fun HomeTopBar(
                         Brush.linearGradient(
                             colors = listOf(Accents.Amber, Success)
                         )
-                    )
-            ) {
+                    )){
                 Text(
                     text = avatarLetter,
                     fontSize = 15.sp,
@@ -396,26 +395,34 @@ private fun HomeTopBar(
             }
         }
 
-        // Right-side sync section — replaces the old notification bell. Only
-        // visible when SMS sync is enabled. Tap to trigger a manual rescan;
-        // icon spins while a sync is in progress.
-        if (isSmsEnabled) {
-            Box(
-                contentAlignment = Alignment.Center,
+        //Right-side sync section — replaces the old notification bell. Only
+        //visible when SMS sync is enabled. Tap to trigger a manual rescan;
+        //icon spins while a sync is in progress.
+        if (isSmsEnabled){
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
+                    .clip(RoundedCornerShape(20.dp))
                     .background(BgElev2)
                     .clickable(enabled = !isSyncing, onClick = onSyncClick)
-            ) {
+                    .padding(horizontal = 10.dp, vertical = 6.dp)){
                 Icon(
                     Icons.Outlined.Sync,
-                    contentDescription = if (isSyncing) "Syncing" else "Sync now",
+                    contentDescription = null,
                     tint = Accents.Amber,
                     modifier = Modifier
-                        .size(18.dp)
+                        .size(14.dp)
                         .then(if (isSyncing) Modifier.rotate(syncRotation) else Modifier)
                 )
+                AnimatedVisibility(visible = isSyncing){
+                    Text(
+                        text = "Syncing",
+                        fontSize = 11.sp,
+                        fontFamily = InterFamily,
+                        color = TextMuted
+                    )
+                }
             }
         }
     }
@@ -427,8 +434,8 @@ private fun HomeTopBar(
 private fun BalanceGradientCard(
     uiState: HomeUiState,
     selectedPeriod: DashboardPeriod,
-    modifier: Modifier = Modifier,
-) {
+    modifier: Modifier = Modifier) {
+
     val infiniteTransition = rememberInfiniteTransition(label = "mesh")
     val blob1Progress by infiniteTransition.animateFloat(
         initialValue = 0f, targetValue = 1f,
@@ -495,13 +502,11 @@ private fun BalanceGradientCard(
                     ),
                     radius = r3, center = Offset(b3x, b3y)
                 )
-            }
-    ) {
+            }){
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.xl, vertical = Spacing.lg)
-        ) {
+                .padding(horizontal = Spacing.xl, vertical = Spacing.lg)){
             Text(
                 text = "TOTAL BALANCE",
                 fontSize = 11.sp,
@@ -554,13 +559,6 @@ private fun BalanceGradientCard(
                     icon = { Icon(Icons.Outlined.ArrowUpward, null, modifier = Modifier.size(11.dp)) },
                     amount = stats?.totalExpense ?: 0.0,
                     color = Danger
-                )
-                Text(
-                    text = periodLabel(selectedPeriod),
-                    fontSize = 12.sp,
-                    fontFamily = InterFamily,
-                    color = TextMuted,
-                    modifier = Modifier.padding(start = 4.dp)
                 )
             }
         }

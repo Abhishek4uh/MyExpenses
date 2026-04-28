@@ -29,7 +29,7 @@ object VoiceNLPParser {
 
     // ── Income signals ────────────────────────────────────────────────────────
     private val INCOME_KEYWORDS = setOf(
-        "received", "got", "earned", "credited", "salary", "income",
+        "received", "got", "earned", "credited", "salary", "income","credit","receive",
         "payment received", "mila", "aaya"  // Hinglish
     )
 

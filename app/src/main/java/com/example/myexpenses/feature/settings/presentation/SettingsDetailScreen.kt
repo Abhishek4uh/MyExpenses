@@ -129,16 +129,14 @@ fun SettingsDetailScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AppColors.Background)
             )
-        }
-    ) { innerPadding ->
+        }){innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(top = innerPadding.calculateTopPadding())
                 .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
-                .padding(20.dp)
-        ) {
+                .padding(20.dp)){
             when (settingsKey) {
                 "profile" -> ProfileEditContent(
                     currentName = prefs.name,
@@ -352,7 +350,8 @@ private fun CategoriesContent(stats: List<CategoryStatRow>){
     val income = stats.filter {
         it.type == TransactionType.INCOME
     }
-    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(24.dp)) {
         if (expenses.isNotEmpty()) {
             CategorySection(title = "Expense Categories", items = expenses)
         }
