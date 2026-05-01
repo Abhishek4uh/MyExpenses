@@ -42,11 +42,19 @@ class SmsReceiver : BroadcastReceiver() {
 
         scope.launch {
             try {
-                val enabled = preferencesRepository.getUserPreferences().first().isSmsReaderEnabled
-                Timber.tag(TAG).d("isSmsReaderEnabled=$enabled")
-                if (!enabled) return@launch
+                val prefs = preferencesRepository.getUserPreferences().first()
+                Timber.tag(TAG).d("isSmsReaderEnabled=${prefs.isSmsReaderEnabled}")
+                if (!prefs.isSmsReaderEnabled) return@launch
+
+                val registrationEpochMs = preferencesRepository.getRegistrationEpochMs().first()
 
                 messages.forEach { sms ->
+                    // Drop any SMS that predates app registration (delayed carrier delivery, etc.)
+                    if (sms.timestampMillis < registrationEpochMs) {
+                        Timber.tag(TAG).d("Skipped (before registration) ts=${sms.timestampMillis}")
+                        return@forEach
+                    }
+
                     val sender = sms.originatingAddress ?: "Unknown"
                     val body = sms.messageBody ?: ""
                     Timber.tag(TAG).d("Processing SMS from=$sender bodyLen=${body.length}")
@@ -59,6 +67,10 @@ class SmsReceiver : BroadcastReceiver() {
                     Timber.tag(TAG)
                         .d("Inserting txn amount=$amount type=${parsed.parsedType} from=$sender")
 
+                    val dateTime = LocalDateTime.ofInstant(
+                        java.time.Instant.ofEpochMilli(sms.timestampMillis),
+                        java.time.ZoneId.systemDefault(),
+                    )
                     repository.insertTransaction(
                         Transaction(
                             amount = amount,
@@ -66,7 +78,7 @@ class SmsReceiver : BroadcastReceiver() {
                             category = parsed.suggestedCategory ?: ExpenseCategory.MISCELLANEOUS,
                             note = sender,
                             source = EntrySource.SMS,
-                            dateTime = LocalDateTime.now(),
+                            dateTime = dateTime,
                             isConfirmed = true
                         )
                     )

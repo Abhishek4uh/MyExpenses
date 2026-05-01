@@ -87,7 +87,7 @@ private fun InnerNavHost(
             },
             onNavigateToAllTransactions = {
                 rootNavController.navigateToDetail(TopLevel.AllTransactions.route)
-            }
+            },
         )
 
         analyticsTabGraph(

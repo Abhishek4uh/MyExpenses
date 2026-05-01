@@ -23,6 +23,7 @@ class PreferencesRepositoryImpl @Inject constructor(
         val REMINDERS_ENABLED = booleanPreferencesKey("reminders_enabled")
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val NAME = stringPreferencesKey("user_name")
+        val REGISTRATION_EPOCH_MS = longPreferencesKey("registration_epoch_ms")
         val INSIGHTS_RANGE = stringPreferencesKey("insights_range")
         val INSIGHTS_CUSTOM_START = longPreferencesKey("insights_custom_start")
         val INSIGHTS_CUSTOM_END = longPreferencesKey("insights_custom_end")
@@ -56,8 +57,17 @@ class PreferencesRepositoryImpl @Inject constructor(
     }
 
     override suspend fun setOnboardingComplete() {
-        dataStore.edit { it[Keys.ONBOARDING_COMPLETE] = true }
+        dataStore.edit { prefs ->
+            prefs[Keys.ONBOARDING_COMPLETE] = true
+            // Write-once: never shift the window on subsequent calls
+            if (prefs[Keys.REGISTRATION_EPOCH_MS] == null) {
+                prefs[Keys.REGISTRATION_EPOCH_MS] = System.currentTimeMillis()
+            }
+        }
     }
+
+    override fun getRegistrationEpochMs(): Flow<Long> =
+        dataStore.data.map { prefs -> prefs[Keys.REGISTRATION_EPOCH_MS] ?: 0L }
 
     override fun getInsightsRange(): Flow<Triple<String, Long?, Long?>> =
         dataStore.data.map { prefs ->

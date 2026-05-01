@@ -13,6 +13,7 @@ import com.example.myexpenses.core.domain.GetRecentTransactionsUseCase
 import com.example.myexpenses.core.domain.GetTransactionByIdUseCase
 import com.example.myexpenses.core.sms.SmsSyncService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,6 +26,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -54,8 +56,7 @@ class HomeViewModel @Inject constructor(
     private val getTransactionByIdUseCase: GetTransactionByIdUseCase,
     private val smsSyncService: SmsSyncService,
     private val preferencesRepository: PreferencesRepository,
-    private val transactionRepository: TransactionRepository
-) : ViewModel() {
+    private val transactionRepository: TransactionRepository) : ViewModel() {
 
     private val _period = MutableStateFlow(DashboardPeriod.MONTH)
     val period: StateFlow<DashboardPeriod> = _period.asStateFlow()
@@ -73,17 +74,18 @@ class HomeViewModel @Inject constructor(
         .map { it.isSmsReaderEnabled }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<HomeUiState> = _period
         .flatMapLatest { period ->
             combine(
                 statsFlowFor(period),
                 getRecentTransactionsUseCase()
-            ) { stats, transactions ->
+            ){stats,transactions ->
                 HomeUiState.Success(
                     stats = stats,
                     recentTransactions = transactions.take(10)
                 ) as HomeUiState
-            }.catch { e ->
+            }.catch {e ->
                 emit(HomeUiState.Error(e.message ?: "Something went wrong"))
             }
         }
@@ -99,11 +101,12 @@ class HomeViewModel @Inject constructor(
         // users opening the app expecting a sync would see nothing.
         viewModelScope.launch {
             val enabled = preferencesRepository.getUserPreferences().first().isSmsReaderEnabled
-            Log.d(TAG, "init: isSmsReaderEnabled=$enabled — auto-sync ${if (enabled) "starting" else "skipped"}")
+            Timber.tag(TAG)
+                .d("init: isSmsReaderEnabled=$enabled — auto-sync ${if (enabled) "starting" else "skipped"}")
             if (enabled) {
                 _isSyncing.value = true
                 val n = smsSyncService.syncInbox()
-                Log.d(TAG, "init: auto-sync complete, inserted=$n")
+                Timber.tag(TAG).d("init: auto-sync complete, inserted=$n")
                 _isSyncing.value = false
             }
         }
@@ -124,23 +127,23 @@ class HomeViewModel @Inject constructor(
 
     fun syncSmsTransactions() {
         if (_isSyncing.value) return
-        Log.d(TAG, "syncSmsTransactions: manual sync requested")
+        Timber.tag(TAG).d("syncSmsTransactions: manual sync requested")
         viewModelScope.launch {
             _isSyncing.value = true
             val n = smsSyncService.syncInbox()
-            Log.d(TAG, "syncSmsTransactions: complete, inserted=$n")
+            Timber.tag(TAG).d("syncSmsTransactions: complete, inserted=$n")
             _isSyncing.value = false
         }
     }
 
     fun toggleSmsReader(enabled: Boolean) {
-        Log.d(TAG, "toggleSmsReader: enabled=$enabled")
+        Timber.tag(TAG).d("toggleSmsReader: enabled=$enabled")
         viewModelScope.launch {
             preferencesRepository.updateSmsReaderEnabled(enabled)
             if (enabled) {
                 _isSyncing.value = true
                 val n = smsSyncService.syncInbox()
-                Log.d(TAG, "toggleSmsReader: post-enable sync inserted=$n")
+                Timber.tag(TAG).d("toggleSmsReader: post-enable sync inserted=$n")
                 _isSyncing.value = false
             }
         }

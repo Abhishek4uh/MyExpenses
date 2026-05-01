@@ -3,21 +3,21 @@ package com.example.myexpenses.core.sms
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
-import android.net.Uri
-import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import com.example.myexpenses.core.common.EntrySource
 import com.example.myexpenses.core.common.ExpenseCategory
 import com.example.myexpenses.core.common.Transaction
 import com.example.myexpenses.core.common.TransactionType
+import com.example.myexpenses.core.data.PreferencesRepository
 import com.example.myexpenses.core.data.TransactionRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.first
 import timber.log.Timber
 import java.time.Instant
 import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
-import androidx.core.net.toUri
 
 private const val TAG = "SmsSyncService"
 
@@ -30,20 +30,22 @@ private const val TAG = "SmsSyncService"
 @Singleton
 class SmsSyncService @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val repository: TransactionRepository) {
+    private val repository: TransactionRepository,
+    private val preferencesRepository: PreferencesRepository,
+) {
     /**
-     * Scans the last [lookbackDays] days of inbox SMS, parses financial ones,
+     * Scans the SMS inbox starting from the user's registration timestamp
+     * (stored in DataStore when onboarding completes), parses financial ones,
      * and upserts them as confirmed transactions.
      * Returns the number of transactions inserted or updated.
      */
-    suspend fun syncInbox(lookbackDays: Int = 90): Int {
+    suspend fun syncInbox(): Int {
         if (!hasPermission()) {
             Timber.tag(TAG).w("syncInbox: READ_SMS permission NOT granted")
             return 0
         }
-        Timber.tag(TAG).d("syncInbox: starting (lookback=$lookbackDays days)")
-
-        val since = System.currentTimeMillis() - lookbackDays.toLong() * 24 * 60 * 60 * 1000
+        val since = preferencesRepository.getRegistrationEpochMs().first()
+        Timber.tag(TAG).d("syncInbox: starting (since=${Instant.ofEpochMilli(since)})")
         var scanned = 0
         var inserted = 0
 

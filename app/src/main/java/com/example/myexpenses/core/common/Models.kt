@@ -1,5 +1,6 @@
 package com.example.myexpenses.core.common
 
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -97,6 +98,16 @@ data class PendingSmsTransaction(
     val suggestedCategory: ExpenseCategory?,
     val senderName: String,
     val receivedAt: LocalDateTime = LocalDateTime.now()
+)
+
+// ─── Streak ──────────────────────────────────────────────────────────────────
+
+enum class DayStatus { COMPLETED, MISSED, TODAY, FUTURE }
+
+data class StreakData(
+    val currentStreak: Int,
+    val activeDays: Set<LocalDate>,
+    val onboardingDate: LocalDate,
 )
 
 // ─── User Preferences ────────────────────────────────────────────────────────

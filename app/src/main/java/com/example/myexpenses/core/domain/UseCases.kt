@@ -5,15 +5,22 @@ import com.example.myexpenses.core.common.DailyAggregate
 import com.example.myexpenses.core.common.DashboardStats
 import com.example.myexpenses.core.common.MonthlyAggregate
 import com.example.myexpenses.core.common.PendingSmsTransaction
+import com.example.myexpenses.core.common.StreakData
 import com.example.myexpenses.core.common.Transaction
 import com.example.myexpenses.core.common.TransactionType
+import com.example.myexpenses.core.data.PreferencesRepository
+import com.example.myexpenses.core.data.TransactionDao
 import com.example.myexpenses.core.data.TransactionRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.temporal.WeekFields
 import java.util.Locale
 import javax.inject.Inject
+import javax.inject.Singleton
 
 // ─── Add Transaction ──────────────────────────────────────────────────────────
 
@@ -136,6 +143,39 @@ class DeleteTransactionUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(id: String) {
         repository.deleteTransaction(id)
+    }
+}
+
+// ─── Get Streak ───────────────────────────────────────────────────────────────
+
+@Singleton
+class GetStreakUseCase @Inject constructor(
+    private val dao: TransactionDao,
+    private val prefs: PreferencesRepository,
+) {
+    operator fun invoke(): Flow<StreakData> = combine(
+        dao.getDistinctActiveDays(),
+        prefs.getRegistrationEpochMs(),
+    ) { dayStrings, regMs ->
+        val activeDays = dayStrings.mapNotNullTo(mutableSetOf()) {
+            runCatching { LocalDate.parse(it) }.getOrNull()
+        }
+        val onboardingDate = Instant.ofEpochMilli(regMs.coerceAtLeast(1L))
+            .atZone(ZoneId.systemDefault()).toLocalDate()
+        StreakData(
+            currentStreak = computeStreak(activeDays),
+            activeDays    = activeDays,
+            onboardingDate = onboardingDate,
+        )
+    }
+
+    private fun computeStreak(activeDays: Set<LocalDate>): Int {
+        val today = LocalDate.now()
+        if (today !in activeDays && today.minusDays(1) !in activeDays) return 0
+        var streak = 0
+        var day = if (today in activeDays) today else today.minusDays(1)
+        while (day in activeDays) { streak++; day = day.minusDays(1) }
+        return streak
     }
 }
 

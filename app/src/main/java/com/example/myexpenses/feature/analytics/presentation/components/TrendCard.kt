@@ -146,7 +146,7 @@ private fun DeltaPill(delta: Float, accent: Color) {
         )
     }
 }
-
+@Suppress("UnusedBoxWithConstraintsScope")
 @Composable
 private fun TrendChart(trend: TrendSeries, accent: Color) {
     var triggered by remember(trend) { mutableStateOf(false) }
@@ -165,8 +165,7 @@ private fun TrendChart(trend: TrendSeries, accent: Color) {
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
-            .height(140.dp)
-    ) {
+            .height(140.dp)){
         if (trend.values.isEmpty() || trend.values.all { it == 0L }) {
             // Empty/flat state — single dashed line at baseline
             Canvas(modifier = Modifier.fillMaxWidth().height(140.dp)) {

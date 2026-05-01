@@ -8,6 +8,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,11 +18,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -31,8 +34,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myexpenses.core.ui.theme.BgElev1
@@ -43,12 +49,15 @@ import com.example.myexpenses.core.ui.theme.TextMuted
 import com.example.myexpenses.core.ui.theme.TextPrimary
 import com.example.myexpenses.core.ui.theme.TextTertiary
 import com.example.myexpenses.feature.analytics.presentation.GroupAmount
+import kotlin.math.atan2
+import kotlin.math.sqrt
 
 /**
- * Donut chart + legend. Each group renders as a stroke arc starting at 12
- * o'clock (-90°). Arcs animate in with stroke-sweep over 600ms with 50ms
- * stagger between segments. Legend rows are tappable → drill-down to
- * CategoryDetail.
+ * V3 Breakdown card:
+ *  - Donut centered at top (tappable slices → highlight + scroll to category)
+ *  - Full category list below with: color dot | name | ₹amount | pct | mini bar
+ *
+ * Top 5 non-zero groups shown; the rest collapse into an "Others" row.
  */
 @Composable
 fun BreakdownCard(
@@ -57,7 +66,15 @@ fun BreakdownCard(
     modifier: Modifier = Modifier,
 ) {
     val nonZero = breakdown.filter { it.amount > 0 }
-    val total = nonZero.sumOf { it.amount }
+    val total   = nonZero.sumOf { it.amount }
+
+    // Top 5 + Others aggregation
+    val top5    = nonZero.take(5)
+    val others  = nonZero.drop(5)
+    val othersAmount = others.sumOf { it.amount }
+    val othersColor  = Color(0xFF555555)
+
+    var selectedIndex by remember(breakdown) { mutableIntStateOf(-1) }
 
     Box(
         modifier = modifier
@@ -72,39 +89,40 @@ fun BreakdownCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
+                verticalAlignment     = Alignment.Top,
             ) {
                 Column {
                     Text(
                         "Where it went",
-                        fontSize = 12.sp,
+                        fontSize   = 12.sp,
                         fontFamily = InterFamily,
-                        color = TextTertiary,
+                        color      = TextTertiary,
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        "By category",
-                        fontSize = 16.sp,
+                        "Category breakdown",
+                        fontSize   = 16.sp,
                         fontFamily = InterFamily,
                         fontWeight = FontWeight.SemiBold,
-                        color = TextPrimary,
+                        color      = TextPrimary,
                     )
                 }
                 Text(
                     "Tap to drill down",
-                    fontSize = 11.sp,
+                    fontSize   = 11.sp,
                     fontFamily = InterFamily,
-                    color = TextMuted,
+                    color      = TextMuted,
                 )
             }
 
             Spacer(Modifier.height(18.dp))
 
             if (total <= 0L) {
+                // Empty state
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(140.dp),
+                        .height(120.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -112,27 +130,56 @@ fun BreakdownCard(
                         Spacer(Modifier.height(8.dp))
                         Text(
                             "Add an expense to see this",
-                            fontSize = 12.sp,
+                            fontSize   = 12.sp,
                             fontFamily = InterFamily,
-                            color = TextMuted,
+                            color      = TextMuted,
                         )
                     }
                 }
             } else {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Donut(
-                        breakdown = nonZero,
-                        total = total,
-                        modifier = Modifier.size(140.dp),
+                // Donut centered
+                Box(
+                    modifier          = Modifier.fillMaxWidth(),
+                    contentAlignment  = Alignment.Center,
+                ) {
+                    DonutChart(
+                        items         = top5,
+                        othersAmount  = othersAmount,
+                        othersColor   = othersColor,
+                        total         = total,
+                        selectedIndex = selectedIndex,
+                        onSliceTap    = { idx -> selectedIndex = if (selectedIndex == idx) -1 else idx },
+                        modifier      = Modifier.size(180.dp),
                     )
-                    Spacer(Modifier.size(18.dp))
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        nonZero.take(5).forEach { entry ->
-                            LegendRow(entry, onCategoryClick)
-                        }
+                }
+
+                Spacer(Modifier.height(18.dp))
+
+                // Category list
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    top5.forEachIndexed { i, entry ->
+                        CategoryRow(
+                            color      = entry.group.tone.fg,
+                            name       = entry.group.displayName,
+                            amount     = entry.amount,
+                            pct        = entry.pct,
+                            selected   = selectedIndex == i,
+                            onClick    = {
+                                selectedIndex = if (selectedIndex == i) -1 else i
+                                onCategoryClick(entry.group.id)
+                            },
+                        )
+                    }
+                    if (othersAmount > 0L) {
+                        val othersPct = if (total > 0) othersAmount.toFloat() / total else 0f
+                        CategoryRow(
+                            color    = othersColor,
+                            name     = "Others",
+                            amount   = othersAmount,
+                            pct      = othersPct,
+                            selected = false,
+                            onClick  = {},
+                        )
                     }
                 }
             }
@@ -140,131 +187,225 @@ fun BreakdownCard(
     }
 }
 
+// ─── Donut ─────────────────────────────────────────────────────────────────────
+
 @Composable
-private fun Donut(
-    breakdown: List<GroupAmount>,
+private fun DonutChart(
+    items: List<GroupAmount>,
+    othersAmount: Long,
+    othersColor: Color,
     total: Long,
+    selectedIndex: Int,
+    onSliceTap: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Animate the global sweep from 0 → 1 on first composition / data change.
-    var triggered by remember(breakdown) { mutableStateOf(false) }
-    LaunchedEffect(breakdown) { triggered = true }
+    var triggered by remember(items) { mutableStateOf(false) }
+    LaunchedEffect(items) { triggered = true }
     val sweepProgress by animateFloatAsState(
-        targetValue = if (triggered) 1f else 0f,
-        animationSpec = tween(600, easing = FastOutSlowInEasing),
-        label = "donut_sweep",
+        targetValue   = if (triggered) 1f else 0f,
+        animationSpec = tween(650, easing = FastOutSlowInEasing),
+        label         = "donut_sweep",
     )
     val fadeAlpha by animateFloatAsState(
-        targetValue = if (triggered) 1f else 0f,
+        targetValue   = if (triggered) 1f else 0f,
         animationSpec = tween(300, easing = LinearEasing),
-        label = "donut_alpha",
+        label         = "donut_fade",
     )
 
-    Box(contentAlignment = Alignment.Center, modifier = modifier) {
-        Canvas(modifier = Modifier.size(140.dp)) {
-            val stroke = 18.dp.toPx()
-            val r = (size.minDimension - stroke) / 2f
-            val topLeft = Offset((size.width - r * 2) / 2f, (size.height - r * 2) / 2f)
-            val arcSize = Size(r * 2, r * 2)
+    // Build arc list: top5 groups + optional others
+    data class Arc(val color: Color, val pct: Float, val index: Int)
+    val arcs = buildList {
+        items.forEachIndexed { i, g -> add(Arc(g.group.tone.fg, g.pct, i)) }
+        if (othersAmount > 0L && total > 0) {
+            add(Arc(othersColor, othersAmount.toFloat() / total, -1))
+        }
+    }
 
-            // Track behind the arcs
+    Box(contentAlignment = Alignment.Center, modifier = modifier) {
+        Canvas(
+            modifier = Modifier
+                .size(180.dp)
+                .pointerInput(arcs) {
+                    detectTapGestures { tap ->
+                        val cx = size.width / 2f
+                        val cy = size.height / 2f
+                        val dx = tap.x - cx
+                        val dy = tap.y - cy
+                        val dist = sqrt(dx * dx + dy * dy)
+                        val strokePx = 22.dp.toPx()
+                        val outerR   = minOf(size.width, size.height).toFloat() / 2f
+                        val innerR   = outerR - strokePx
+                        if (dist < innerR || dist > outerR) return@detectTapGestures
+                        // Angle: atan2 in -π..π, shift so 0° = top (-90°)
+                        var angle = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat() + 90f
+                        if (angle < 0) angle += 360f
+                        var cum = 0f
+                        arcs.forEach { arc ->
+                            val sweep = arc.pct * 360f * sweepProgress
+                            if (angle in cum..(cum + sweep)) {
+                                if (arc.index >= 0) onSliceTap(arc.index)
+                                return@detectTapGestures
+                            }
+                            cum += arc.pct * 360f * sweepProgress
+                        }
+                    }
+                }
+        ) {
+            val stroke   = 22.dp.toPx()
+            val r        = (size.minDimension - stroke) / 2f
+            val topLeft  = Offset((size.width - r * 2) / 2f, (size.height - r * 2) / 2f)
+            val arcSize  = Size(r * 2, r * 2)
+
+            // Track
             drawArc(
-                color = Color(0xFF161616),
-                startAngle = 0f,
-                sweepAngle = 360f,
-                useCenter = false,
-                topLeft = topLeft,
-                size = arcSize,
-                style = Stroke(width = stroke),
+                color       = Color(0xFF161616),
+                startAngle  = 0f,
+                sweepAngle  = 360f,
+                useCenter   = false,
+                topLeft     = topLeft,
+                size        = arcSize,
+                style       = Stroke(width = stroke),
             )
 
-            // Each group as a stroke arc
             var angle = -90f
-            breakdown.forEach { entry ->
-                val full = entry.pct * 360f
-                val sweep = full * sweepProgress
+            arcs.forEachIndexed { i, arc ->
+                val full      = arc.pct * 360f
+                val sweep     = full * sweepProgress
+                val isSelected = arc.index == selectedIndex
+                val arcStroke = if (isSelected) stroke * 1.2f else stroke
+                val arcR      = if (isSelected) (size.minDimension - arcStroke) / 2f else r
+                val arcTL     = if (isSelected)
+                    Offset((size.width - arcR * 2) / 2f, (size.height - arcR * 2) / 2f)
+                else topLeft
+                val arcSz     = if (isSelected) Size(arcR * 2, arcR * 2) else arcSize
+
                 if (sweep > 0f) {
                     drawArc(
-                        color = entry.group.tone.fg,
-                        startAngle = angle,
-                        sweepAngle = sweep,
-                        useCenter = false,
-                        topLeft = topLeft,
-                        size = arcSize,
-                        style = Stroke(width = stroke),
+                        color       = arc.color.copy(alpha = if (selectedIndex == -1 || isSelected) 1f else 0.4f),
+                        startAngle  = angle,
+                        sweepAngle  = sweep - if (arcs.size > 1) 1.5f else 0f,
+                        useCenter   = false,
+                        topLeft     = arcTL,
+                        size        = arcSz,
+                        style       = Stroke(width = arcStroke, cap = StrokeCap.Round),
                     )
                 }
                 angle += full
             }
         }
+
+        // Center label
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(8.dp).run {
-                // alpha animation on center label
-                this
-            },
+            modifier = Modifier.padding(16.dp),
         ) {
             Text(
                 "TOTAL",
-                fontSize = 10.sp,
-                fontFamily = InterFamily,
-                color = TextMuted,
+                fontSize      = 10.sp,
+                fontFamily    = InterFamily,
+                color         = TextMuted,
                 letterSpacing = 0.8.sp,
             )
             Text(
                 "₹${total.formatCompact()}",
-                fontSize = 16.sp,
+                fontSize   = 18.sp,
                 fontFamily = InterFamily,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary.copy(alpha = fadeAlpha),
+                color      = TextPrimary.copy(alpha = fadeAlpha),
             )
         }
     }
 }
 
+// ─── Category row ──────────────────────────────────────────────────────────────
+
 @Composable
-private fun LegendRow(entry: GroupAmount, onClick: (String) -> Unit) {
-    val pct = (entry.pct * 100).toInt()
+private fun CategoryRow(
+    color: Color,
+    name: String,
+    amount: Long,
+    pct: Float,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val bgAlpha = if (selected) 0.06f else 0f
     Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
-            .clickable { onClick(entry.group.id) }
-            .padding(vertical = 4.dp),
+            .clip(RoundedCornerShape(10.dp))
+            .background(color.copy(alpha = bgAlpha))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
+        // Color dot
         Box(
             modifier = Modifier
                 .size(8.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(entry.group.tone.fg)
+                .clip(CircleShape)
+                .background(color)
         )
+
+        // Name
         Text(
-            entry.group.displayName,
-            fontSize = 12.sp,
+            name,
+            fontSize   = 13.sp,
             fontFamily = InterFamily,
-            fontWeight = FontWeight.Medium,
-            color = TextPrimary,
-            modifier = Modifier.weight(1f),
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color      = if (selected) TextPrimary else TextPrimary.copy(alpha = 0.85f),
+            maxLines   = 1,
+            overflow   = TextOverflow.Ellipsis,
+            modifier   = Modifier.weight(1f),
         )
+
+        // Amount
         Text(
-            "$pct%",
-            fontSize = 11.sp,
+            "₹${amount.formatCompact()}",
+            fontSize   = 12.sp,
             fontFamily = InterFamily,
-            color = TextMuted,
+            fontWeight = FontWeight.SemiBold,
+            color      = if (selected) color else TextPrimary,
+        )
+
+        // Pct
+        val pctInt = (pct * 100).toInt()
+        Text(
+            "$pctInt%",
+            fontSize   = 11.sp,
+            fontFamily = InterFamily,
+            color      = TextMuted,
+            modifier   = Modifier.padding(start = 2.dp),
+        )
+    }
+
+    // Mini progress bar
+    val animated by animateFloatAsState(
+        targetValue   = pct.coerceIn(0f, 1f),
+        animationSpec = tween(500, easing = FastOutSlowInEasing),
+        label         = "cat_bar_$name",
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 26.dp)
+            .height(2.dp)
+            .clip(RoundedCornerShape(1.dp))
+            .background(BgElev3)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(animated)
+                .height(2.dp)
+                .background(color.copy(alpha = if (selected) 1f else 0.55f), RoundedCornerShape(1.dp))
         )
     }
 }
 
+// ─── Shared util ───────────────────────────────────────────────────────────────
+
 private fun Long.formatCompact(): String = when {
-    this >= 100_000 -> {
-        val l = this / 100_000.0
-        if (l == l.toInt().toDouble()) "${l.toInt()}L" else "%.1fL".format(l)
-    }
-    this >= 1_000 -> {
-        val k = this / 1_000.0
-        if (k == k.toInt().toDouble()) "${k.toInt()}K" else "%.1fK".format(k)
-    }
-    else -> "%,d".format(this)
+    this >= 100_000 -> "%.1fL".format(this / 100_000.0)
+    this >= 1_000   -> "%.1fK".format(this / 1_000.0)
+    else            -> "%,d".format(this)
 }

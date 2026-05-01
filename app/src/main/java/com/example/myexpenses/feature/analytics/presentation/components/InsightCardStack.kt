@@ -44,8 +44,8 @@ import com.example.myexpenses.feature.analytics.domain.InsightTone
 @Composable
 fun InsightCardStack(
     insights: List<Insight>,
-    modifier: Modifier = Modifier,
-) {
+    modifier: Modifier = Modifier){
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),

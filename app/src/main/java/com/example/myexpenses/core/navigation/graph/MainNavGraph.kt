@@ -35,19 +35,21 @@ import com.example.myexpenses.feature.settings.presentation.SettingsScreen
 fun NavGraphBuilder.homeTabGraph(
     innerNavController: NavHostController,
     onNavigateToDetail: (transactionId: String) -> Unit,
-    onNavigateToAllTransactions: () -> Unit
-) {
+    onNavigateToAllTransactions: () -> Unit){
     navigation(
         route = Graph.HomeTab.route,
         startDestination = Tab.Home.route) {
         composable(
             route = Tab.Home.route,
-            deepLinks = listOf(navDeepLink { uriPattern = Tab.Home.deepLink })
-        ) {
+            deepLinks = listOf(navDeepLink {
+                uriPattern = Tab.Home.deepLink
+            })){
             HomeScreen(
                 onNavigateToDetail = onNavigateToDetail,
-                onNavigateToSettings = { innerNavController.navigate(Tab.Settings.route) },
-                onNavigateToAllTransactions = onNavigateToAllTransactions
+                onNavigateToAllTransactions = onNavigateToAllTransactions,
+                onNavigateToSettings = {
+                    innerNavController.navigate(Tab.Settings.route)
+                }
             )
         }
     }
@@ -57,16 +59,15 @@ fun NavGraphBuilder.homeTabGraph(
 
 fun NavGraphBuilder.analyticsTabGraph(
     innerNavController: NavHostController,
-    onNavigateToCategoryDetail: (String) -> Unit,
-) {
+    onNavigateToCategoryDetail: (String) -> Unit){
     navigation(
         route = Graph.AnalyticsTab.route,
-        startDestination = Tab.Analytics.route
-    ) {
+        startDestination = Tab.Analytics.route){
         composable(
             route = Tab.Analytics.route,
-            deepLinks = listOf(navDeepLink { uriPattern = Tab.Analytics.deepLink })
-        ) {
+            deepLinks = listOf(navDeepLink {
+                uriPattern = Tab.Analytics.deepLink
+            })){
             InsightsScreen(
                 onNavigateToCategoryDetail = onNavigateToCategoryDetail,
             )
@@ -78,16 +79,15 @@ fun NavGraphBuilder.analyticsTabGraph(
 
 fun NavGraphBuilder.settingsTabGraph(
     innerNavController: NavHostController,
-    onNavigateToDetail: (key: String) -> Unit
-) {
+    onNavigateToDetail: (key: String) -> Unit){
     navigation(
         route = Graph.SettingsTab.route,
-        startDestination = Tab.Settings.route
-    ) {
+        startDestination = Tab.Settings.route){
         composable(
             route = Tab.Settings.route,
-            deepLinks = listOf(navDeepLink { uriPattern = Tab.Settings.deepLink })
-        ) {
+            deepLinks = listOf(navDeepLink {
+                uriPattern = Tab.Settings.deepLink
+            })){
             SettingsScreen(
                 onNavigateToDetail = onNavigateToDetail
             )

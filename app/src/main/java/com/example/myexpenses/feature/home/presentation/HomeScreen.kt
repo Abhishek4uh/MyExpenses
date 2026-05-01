@@ -23,6 +23,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,8 +35,8 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -52,7 +53,6 @@ import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Mic
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.AlertDialog
@@ -68,8 +68,6 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -88,7 +86,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLocale
@@ -102,13 +99,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.myexpenses.core.common.ExpenseCategory
 import com.example.myexpenses.core.common.Transaction
 import com.example.myexpenses.core.common.TransactionType
-import com.example.myexpenses.feature.main.presentation.BottomNavBarReservedHeight
 import com.example.myexpenses.core.ui.theme.Accents
 import com.example.myexpenses.core.ui.theme.BgBase
 import com.example.myexpenses.core.ui.theme.BgElev1
 import com.example.myexpenses.core.ui.theme.BgElev2
 import com.example.myexpenses.core.ui.theme.BgElev3
 import com.example.myexpenses.core.ui.theme.BgElev5
+import com.example.myexpenses.core.ui.theme.BorderDefault
 import com.example.myexpenses.core.ui.theme.CategoryTones
 import com.example.myexpenses.core.ui.theme.Danger
 import com.example.myexpenses.core.ui.theme.InterFamily
@@ -119,18 +116,20 @@ import com.example.myexpenses.core.ui.theme.TextMuted
 import com.example.myexpenses.core.ui.theme.TextPrimary
 import com.example.myexpenses.core.ui.theme.TextSecondary
 import com.example.myexpenses.core.ui.theme.TextTertiary
+import com.example.myexpenses.feature.main.presentation.BottomNavBarReservedHeight
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import android.provider.Settings as SystemSettings
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToDetail: (transactionId: String) -> Unit,
     onNavigateToSettings: () -> Unit = {},
     onNavigateToAllTransactions: () -> Unit = {},
-    viewModel: HomeViewModel = hiltViewModel()){
+    viewModel: HomeViewModel = hiltViewModel(),
+    streakViewModel: com.example.myexpenses.feature.streak.presentation.StreakViewModel = hiltViewModel()){
 
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -143,6 +142,9 @@ fun HomeScreen(
     val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
     val userName by viewModel.userName.collectAsStateWithLifecycle()
     val isSmsEnabled by viewModel.isSmsEnabled.collectAsStateWithLifecycle()
+    val streakData by streakViewModel.streakData.collectAsStateWithLifecycle()
+    val displayMonth by streakViewModel.displayMonth.collectAsStateWithLifecycle()
+    var showStreakSheet by remember { mutableStateOf(false) }
     var fabExpanded by remember { mutableStateOf(false) }
 
     // ── SMS permission flow (in-place) ───────────────────────────────────────
@@ -152,13 +154,22 @@ fun HomeScreen(
         ActivityResultContracts.RequestPermission()){ granted ->
         if (granted) {
             viewModel.toggleSmsReader(true)
-            smsPermanentlyDenied = false
         }
         else {
             smsPermanentlyDenied = !ActivityCompat.shouldShowRequestPermissionRationale(
                 context as Activity, Manifest.permission.READ_SMS
             )
         }
+    }
+
+    if (showStreakSheet) {
+        com.example.myexpenses.feature.streak.presentation.StreakCalendarSheet(
+            streakData      = streakData,
+            displayMonth    = displayMonth,
+            onPreviousMonth = streakViewModel::goToPreviousMonth,
+            onNextMonth     = streakViewModel::goToNextMonth,
+            onDismiss       = { showStreakSheet = false },
+        )
     }
 
     if (showSmsRationale){
@@ -223,8 +234,7 @@ fun HomeScreen(
                     }
                 )
             }
-        }
-    ) { innerPadding ->
+        }){ innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -241,10 +251,12 @@ fun HomeScreen(
                     userName = userName,
                     isSmsEnabled = isSmsEnabled,
                     isSyncing = isSyncing,
+                    streak = streakData.currentStreak,
                     onSyncClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         viewModel.syncSmsTransactions()
-                    }
+                    },
+                    onStreakClick = { showStreakSheet = true },
                 )
             }
 
@@ -331,8 +343,10 @@ private fun HomeTopBar(
     userName: String,
     isSmsEnabled: Boolean,
     isSyncing: Boolean,
+    streak: Int,
     onSyncClick: () -> Unit,
-) {
+    onStreakClick: () -> Unit){
+
     val displayName = userName.ifEmpty { "there" }
     val avatarLetter = userName.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
     val greeting = when (java.time.LocalTime.now().hour) {
@@ -344,7 +358,7 @@ private fun HomeTopBar(
     val syncRotation by infiniteTransition.animateFloat(
         initialValue = 0f, targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            tween(600, easing = LinearEasing), RepeatMode.Restart
+            tween(200, easing = LinearEasing), RepeatMode.Restart
         ),
         label = "topbar_sync_rotation"
     )
@@ -356,8 +370,7 @@ private fun HomeTopBar(
             .statusBarsPadding()
             .padding(horizontal = Spacing.xxl, vertical = Spacing.sm),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+        verticalAlignment = Alignment.CenterVertically){
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically){
@@ -395,36 +408,69 @@ private fun HomeTopBar(
             }
         }
 
-        //Right-side sync section — replaces the old notification bell. Only
-        //visible when SMS sync is enabled. Tap to trigger a manual rescan;
-        //icon spins while a sync is in progress.
-        if (isSmsEnabled){
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(BgElev2)
-                    .clickable(enabled = !isSyncing, onClick = onSyncClick)
-                    .padding(horizontal = 10.dp, vertical = 6.dp)){
-                Icon(
-                    Icons.Outlined.Sync,
-                    contentDescription = null,
-                    tint = Accents.Amber,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)){
+            if (isSmsEnabled) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier
-                        .size(14.dp)
-                        .then(if (isSyncing) Modifier.rotate(syncRotation) else Modifier)
-                )
-                AnimatedVisibility(visible = isSyncing){
-                    Text(
-                        text = "Syncing",
-                        fontSize = 11.sp,
-                        fontFamily = InterFamily,
-                        color = TextMuted
+                        .height(32.dp) // 1. Fixed height applied here
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(BgElev2)
+                        .clickable(enabled = !isSyncing, onClick = onSyncClick)
+                        .padding(horizontal = 10.dp)){
+                    Icon(
+                        Icons.Outlined.Sync,
+                        contentDescription = null,
+                        tint = Accents.Amber,
+                        modifier = Modifier
+                            .size(18.dp)
+                            .then(if (isSyncing) Modifier.rotate(syncRotation) else Modifier)
                     )
                 }
             }
+            StreakBadge(streak = streak, onClick = onStreakClick)
         }
+    }
+}
+
+@Composable
+private fun StreakBadge(streak: Int, onClick: () -> Unit) {
+    val infiniteTransition = rememberInfiniteTransition(label = "streak_pulse")
+    val scale by infiniteTransition.animateFloat(
+        initialValue   = 0.95f,
+        targetValue    = 1.05f,
+        animationSpec  = infiniteRepeatable(
+            animation  = tween(1800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "streak_scale",
+    )
+    Row(
+        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier
+            .height(32.dp) // 1. Matching fixed height applied here
+            .clip(RoundedCornerShape(20.dp))
+            .background(BgElev2)
+            .border(1.dp, BorderDefault, RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp)){
+        Text(
+            text = "🔥",
+            fontSize = 13.sp,
+            // 2. Animation modifier moved specifically to the fire icon
+            modifier = if (streak > 0) Modifier.graphicsLayer(scaleX = scale, scaleY = scale) else Modifier
+        )
+        Text(
+            text       = streak.toString(),
+            fontSize   = 13.sp,
+            fontFamily = InterFamily,
+            fontWeight = FontWeight.SemiBold,
+            color      = TextPrimary,
+        )
     }
 }
 

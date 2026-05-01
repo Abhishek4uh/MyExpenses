@@ -75,6 +75,13 @@ interface PreferencesRepository {
     suspend fun updateName(name: String)
     suspend fun setOnboardingComplete()
 
+    /**
+     * Epoch-milliseconds when the user completed onboarding.
+     * Returns 0L if the key is absent (should never happen for new installs).
+     * SMS sync must only import messages with [timestamp >= this value].
+     */
+    fun getRegistrationEpochMs(): Flow<Long>
+
     // ─── Insights screen range ─────────────────────────────────────────────────
     /**
      * Triple of (rangeKey, customStartEpochDay?, customEndEpochDay?). Custom

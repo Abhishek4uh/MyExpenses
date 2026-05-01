@@ -83,6 +83,15 @@ interface TransactionDao {
     """)
     fun getDailyAggregates(startMs: Long, endMs: Long): Flow<List<DailyTotal>>
 
+    // ─── Streak — distinct calendar days with at least one confirmed transaction ─
+
+    @Query("""
+        SELECT DISTINCT date(timestamp / 1000, 'unixepoch', 'localtime') as epochDay
+        FROM transactions
+        WHERE isConfirmed = 1
+    """)
+    fun getDistinctActiveDays(): Flow<List<String>>
+
     // ─── Monthly Aggregates (for yearly chart) ────────────────────────────────
 
     @Query("""
