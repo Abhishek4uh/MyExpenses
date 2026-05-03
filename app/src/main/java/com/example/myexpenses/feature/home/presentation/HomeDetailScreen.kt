@@ -90,7 +90,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.sp
 import java.time.format.DateTimeFormatter
+import com.example.myexpenses.R
 import com.example.myexpenses.core.common.EntrySource
+import com.example.myexpenses.core.ui.SoundPlayer
 import com.example.myexpenses.core.ui.theme.BgBase
 import com.example.myexpenses.core.ui.theme.BgElev1
 import com.example.myexpenses.core.ui.theme.BgElev3
@@ -148,7 +150,10 @@ private fun VoiceEntryScreen(
     }
 
     LaunchedEffect(voiceState) {
-        if (voiceState == VoiceUiState.Saved) onNavigateBack()
+        if (voiceState == VoiceUiState.Saved) {
+            SoundPlayer.playOnce(context, R.raw.faaaa)
+            onNavigateBack()
+        }
     }
 
     Scaffold(
@@ -244,7 +249,7 @@ private fun VoiceEntryScreen(
                         Text("Retry")
                     }
                     Button(
-                        onClick = { viewModel.saveVoiceTransaction(onNavigateBack) },
+                        onClick = { viewModel.saveVoiceTransaction {} },
                         enabled = recognized.parsed.amount != null,
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp),
@@ -465,6 +470,7 @@ private fun ManualEntryScreen(
     onNavigateBack: () -> Unit,
     viewModel: AddTransactionViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     Scaffold(
         containerColor = AppColors.Background,
         topBar = {
@@ -584,7 +590,12 @@ private fun ManualEntryScreen(
             Spacer(Modifier.height(8.dp))
 
             Button(
-                onClick = { viewModel.save(onNavigateBack) },
+                onClick = {
+                    viewModel.save {
+                        SoundPlayer.playOnce(context, R.raw.faaaa);
+                        onNavigateBack()
+                    }
+                },
                 enabled = viewModel.canSave,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -595,11 +606,9 @@ private fun ManualEntryScreen(
                     contentColor = AppColors.Background,
                     disabledContainerColor = AppColors.PrimaryContainer,
                     disabledContentColor = AppColors.TextDisabled
-                )
-            ) {
+                )){
                 Text("Save Transaction", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             }
-
             Spacer(Modifier.height(12.dp))
         }
     }

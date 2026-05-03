@@ -1,5 +1,8 @@
 package com.example.myexpenses.core.domain
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import com.example.myexpenses.core.common.CategoryBreakdown
 import com.example.myexpenses.core.common.DailyAggregate
 import com.example.myexpenses.core.common.DashboardStats
@@ -21,6 +24,8 @@ import java.time.temporal.WeekFields
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.core.net.toUri
+import timber.log.Timber
 
 // ─── Add Transaction ──────────────────────────────────────────────────────────
 
@@ -190,5 +195,18 @@ class ConfirmSmsTransactionUseCase @Inject constructor(
     ) {
         repository.insertTransaction(confirmedTransaction)
         repository.deletePendingSmsTransaction(pending.id)
+    }
+}
+
+
+fun Context.openUrl(url: String){
+    val intent = Intent(Intent.ACTION_VIEW, url.toUri())
+    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    try {
+        startActivity(intent)
+        Timber.tag("DEBUG").d("Opened URL: $url")
+    }
+    catch (e: Exception) {
+        Timber.tag("DEBUG").d("Failed due to ${e.stackTrace} - ${e.cause} - ${e.message}")
     }
 }

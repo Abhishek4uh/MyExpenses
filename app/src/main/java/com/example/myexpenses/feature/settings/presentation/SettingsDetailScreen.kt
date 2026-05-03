@@ -183,23 +183,21 @@ fun SettingsDetailScreen(
 
 @Composable
 private fun ProfileEditContent(currentName: String, onSave: (String) -> Unit) {
-    var name by remember { mutableStateOf(currentName) }
+    var name by remember(currentName) { mutableStateOf(currentName) }
     val focusManager = LocalFocusManager.current
     val firstLetter = name.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
+        verticalArrangement = Arrangement.spacedBy(24.dp)){
         Spacer(Modifier.height(8.dp))
-        // Avatar preview
+        //Avatar preview
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(72.dp)
                 .clip(CircleShape)
-                .background(Brush.linearGradient(listOf(Accents.Amber, AppColors.Income)))
-        ) {
+                .background(Brush.linearGradient(listOf(Accents.Amber, AppColors.Income)))){
             Text(firstLetter, fontFamily = InterFamily, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = BgBase)
         }
 
@@ -209,8 +207,7 @@ private fun ProfileEditContent(currentName: String, onSave: (String) -> Unit) {
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
                 .background(BgElev3)
-                .padding(horizontal = 18.dp, vertical = 16.dp)
-        ) {
+                .padding(horizontal = 18.dp, vertical = 16.dp)){
             Text("YOUR NAME", fontSize = 10.sp, fontFamily = InterFamily, color = TextMuted, letterSpacing = 0.8.sp)
             Spacer(Modifier.height(8.dp))
             BasicTextField(
@@ -253,8 +250,7 @@ private fun ProfileEditContent(currentName: String, onSave: (String) -> Unit) {
                 contentColor = BgBase,
                 disabledContainerColor = BgElev3,
                 disabledContentColor = TextMuted
-            )
-        ) {
+            )){
             Text("Save", style = MaterialTheme.typography.labelLarge)
         }
     }

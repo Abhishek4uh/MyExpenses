@@ -1,5 +1,8 @@
 package com.example.myexpenses.feature.about.presentation
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -38,9 +41,11 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myexpenses.core.domain.openUrl
 import com.example.myexpenses.core.ui.theme.Accents
 import com.example.myexpenses.core.ui.theme.BgBase
 import com.example.myexpenses.core.ui.theme.BgElev1
@@ -56,8 +61,8 @@ import com.example.myexpenses.feature.main.presentation.BottomNavBarReservedHeig
 
 @Composable
 fun AboutScreen(onNavigateToDetail: () -> Unit) {
-    val bottomBarInset = BottomNavBarReservedHeight +
-        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val context= LocalContext.current
+    val bottomBarInset = BottomNavBarReservedHeight + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -65,15 +70,13 @@ fun AboutScreen(onNavigateToDetail: () -> Unit) {
             // Sit below the status bar — MainScreen's Box overlay no longer
             // applies a top inset, so each screen handles its own.
             .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-    ) {
+            .verticalScroll(rememberScrollState())){
         // Hero
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = Spacing.xxxl, bottom = Spacing.xxl)
-        ) {
+                .padding(top = Spacing.xxxl, bottom = Spacing.xxl)){
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -87,8 +90,7 @@ fun AboutScreen(onNavigateToDetail: () -> Unit) {
                     .clip(RoundedCornerShape(22.dp))
                     .background(
                         Brush.linearGradient(listOf(Accents.Amber, Color(0xFF1A8A48)))
-                    )
-            ) {
+                    )){
                 Text(
                     text = "₹",
                     fontSize = 50.sp,
@@ -145,13 +147,11 @@ fun AboutScreen(onNavigateToDetail: () -> Unit) {
                     "Room · DataStore",
                     "Coroutines · Flow",
                     "Native SpeechRecognizer",
-                    "Native Telephony API",
-                ).forEach { item ->
+                    "Native Telephony API").forEach {item ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    ) {
+                        modifier = Modifier.padding(vertical = 8.dp)){
                         Box(
                             modifier = Modifier
                                 .size(5.dp)
@@ -169,11 +169,28 @@ fun AboutScreen(onNavigateToDetail: () -> Unit) {
         // Links
         Column(
             verticalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.padding(horizontal = Spacing.xxl)
-        ) {
-            LinkRow(icon = Icons.Outlined.OpenInNew, label = "View source on GitHub", onClick = {})
-            LinkRow(icon = Icons.Outlined.Language, label = "Privacy & terms", onClick = {})
-            LinkRow(icon = Icons.Outlined.Description, label = "Open-source licenses", onClick = {})
+            modifier = Modifier.padding(horizontal = Spacing.xxl)){
+            LinkRow(
+                icon = Icons.Outlined.OpenInNew,
+                label = "View source on GitHub",
+                onClick = {
+                    context.openUrl("https://github.com/Abhishek4uh/MyExpenses")
+                }
+            )
+            LinkRow(
+                icon = Icons.Outlined.Language,
+                label = "Privacy & terms",
+                onClick = {
+
+                }
+            )
+            LinkRow(
+                icon = Icons.Outlined.Description,
+                label = "Open-source licenses",
+                onClick = {
+
+                }
+            )
         }
 
         Spacer(Modifier.height(Spacing.xxxl))
