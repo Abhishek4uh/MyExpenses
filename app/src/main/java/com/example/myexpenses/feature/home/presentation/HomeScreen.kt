@@ -1015,21 +1015,18 @@ private fun ExpandableFab(
     expanded: Boolean,
     onToggle: () -> Unit,
     onVoice: () -> Unit,
-    onManual: () -> Unit
-) {
+    onManual: () -> Unit){
+
     Column(
         horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
+        verticalArrangement = Arrangement.spacedBy(12.dp)){
         AnimatedVisibility(
             visible = expanded,
             enter = fadeIn(tween(200)) + scaleIn(tween(200)),
-            exit = fadeOut(tween(150)) + scaleOut(tween(150))
-        ) {
+            exit = fadeOut(tween(150)) + scaleOut(tween(150))){
             Column(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
-                horizontalAlignment = Alignment.End
-            ) {
+                horizontalAlignment = Alignment.End){
                 FabOption(
                     label = "Voice",
                     icon = { Icon(Icons.Outlined.Mic, "Voice input") },
@@ -1056,17 +1053,18 @@ private fun ExpandableFab(
             onClick = onToggle,
             containerColor = Accents.Amber,
             contentColor = BgBase,
-            modifier = Modifier.shadow(
+            modifier = Modifier
+                .rotate(fabRotation)
+                .shadow(
                 elevation = 20.dp,
                 shape = RoundedCornerShape(16.dp),
                 ambientColor = Accents.Amber.copy(0.5f),
                 spotColor = Accents.Amber.copy(0.7f)
-            )
-        ) {
+            )){
             Icon(
                 Icons.Outlined.Add,
                 contentDescription = if (expanded) "Close" else "Add",
-                modifier = Modifier.rotate(fabRotation)
+                modifier = Modifier
             )
         }
     }
@@ -1078,18 +1076,15 @@ private fun FabOption(
     icon: @Composable () -> Unit,
     containerColor: Color,
     contentColor: Color,
-    onClick: () -> Unit
-) {
+    onClick: () -> Unit){
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
+        horizontalArrangement = Arrangement.spacedBy(10.dp)){
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(10.dp))
                 .background(BgElev3)
-                .padding(horizontal = 14.dp, vertical = 8.dp)
-        ) {
+                .padding(horizontal = 14.dp, vertical = 8.dp)){
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
@@ -1099,8 +1094,7 @@ private fun FabOption(
         SmallFloatingActionButton(
             onClick = onClick,
             containerColor = containerColor,
-            contentColor = contentColor
-        ) {
+            contentColor = contentColor){
             icon()
         }
     }
@@ -1109,7 +1103,7 @@ private fun FabOption(
 // ─── Shimmer Loading ──────────────────────────────────────────────────────────
 
 @Composable
-private fun ShimmerContent(modifier: Modifier = Modifier) {
+private fun ShimmerContent(modifier: Modifier = Modifier){
     val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
     val alpha by infiniteTransition.animateFloat(
         initialValue = 0.15f, targetValue = 0.4f,
@@ -1121,8 +1115,7 @@ private fun ShimmerContent(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
+        verticalArrangement = Arrangement.spacedBy(10.dp)){
         repeat(5) {
             Box(
                 modifier = Modifier
@@ -1138,7 +1131,9 @@ private fun ShimmerContent(modifier: Modifier = Modifier) {
 // ─── Error Content ────────────────────────────────────────────────────────────
 
 @Composable
-private fun SmsCTABanner(onEnable: () -> Unit, modifier: Modifier = Modifier) {
+private fun SmsCTABanner(
+    onEnable: () -> Unit,
+    modifier: Modifier = Modifier) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -1146,18 +1141,18 @@ private fun SmsCTABanner(onEnable: () -> Unit, modifier: Modifier = Modifier) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .background(BgElev2)
-            .padding(horizontal = 14.dp, vertical = 12.dp)
-    ) {
+            .padding(horizontal = 14.dp, vertical = 12.dp)){
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(36.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(Accents.Amber.copy(alpha = 0.15f))
-        ) {
+                .background(Accents.Amber.copy(alpha = 0.15f))){
             Text("💬", fontSize = 16.sp)
         }
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)){
             Text(
                 "Enable SMS sync",
                 fontSize = 13.sp,
@@ -1188,8 +1183,7 @@ private fun SmsCTABanner(onEnable: () -> Unit, modifier: Modifier = Modifier) {
 private fun ErrorContent(
     message: String,
     onRetry: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+    modifier: Modifier = Modifier){
     Column(
         modifier = modifier
             .fillMaxSize()
