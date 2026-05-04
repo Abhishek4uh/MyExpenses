@@ -79,6 +79,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -801,7 +802,7 @@ private fun PeriodTabsRow(
                 animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                 label = "tab_bg"
             )
-            val textColor by androidx.compose.animation.animateColorAsState(
+            val textColor by animateColorAsState(
                 targetValue = if (isSelected) TextPrimary else TextMuted,
                 animationSpec = tween(220),
                 label = "tab_text"
@@ -875,6 +876,7 @@ private fun TransactionItem(
     val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
     val deleteThresholdPx = with(density) { 96.dp.toPx() }
+    val currentOnDelete by rememberUpdatedState(onDelete)
 
     var rawOffsetX by remember { mutableFloatStateOf(0f) }
     val animatedOffsetX by animateFloatAsState(
@@ -935,11 +937,12 @@ private fun TransactionItem(
                         onDrag = { change, dragAmount ->
                             change.consume()
                             rawOffsetX = (rawOffsetX + dragAmount.x).coerceAtMost(0f)
-                            // second haptic snap when crossing delete threshold
-                            if (isPastThreshold) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            if (rawOffsetX < -deleteThresholdPx) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
                         },
                         onDragEnd = {
-                            if (isPastThreshold) onDelete()
+                            if (rawOffsetX < -deleteThresholdPx) currentOnDelete()
                             rawOffsetX = 0f
                         },
                         onDragCancel = { rawOffsetX = 0f }

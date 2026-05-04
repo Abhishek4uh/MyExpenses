@@ -15,7 +15,7 @@ object SoundPlayer {
             .setUsage(AudioAttributes.USAGE_MEDIA)
             .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
             .build()
-        val player = MediaPlayer.create(context, resId, attrs, AudioManager.AUDIO_SESSION_ID_GENERATE)
+        val player = MediaPlayer.create(context.applicationContext, resId, attrs, AudioManager.AUDIO_SESSION_ID_GENERATE)
 
         if (player == null) {
             Timber.tag(TAG).e("MediaPlayer.create returned null — bad resource or codec error")
