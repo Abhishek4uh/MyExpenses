@@ -7,6 +7,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -25,6 +26,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +40,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -72,6 +76,7 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -86,9 +91,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -746,25 +755,23 @@ private fun SyncChip(
 private fun TrendPill(
     icon: @Composable () -> Unit,
     amount: Double,
-    color: Color
-) {
+    color: Color){
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
+        horizontalArrangement = Arrangement.spacedBy(6.dp)){
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(22.dp)
                 .clip(CircleShape)
-                .background(color.copy(0.15f))
-        ) {
+                .background(color.copy(0.15f))){
             androidx.compose.runtime.CompositionLocalProvider(
-                androidx.compose.material3.LocalContentColor provides color
-            ) { icon() }
+                androidx.compose.material3.LocalContentColor provides color){
+                icon()
+            }
         }
         Text(
-            text = "₹${String.format("%,.0f", amount)}",
+            text = "₹${String.format(LocalLocale.current.platformLocale,"%,.0f", amount)}",
             fontSize = 13.sp,
             fontFamily = InterFamily,
             fontWeight = FontWeight.Medium,
@@ -779,16 +786,14 @@ private fun TrendPill(
 private fun PeriodTabsRow(
     selectedPeriod: DashboardPeriod,
     onPeriodSelected: (DashboardPeriod) -> Unit,
-    modifier: Modifier = Modifier
-) {
+    modifier: Modifier = Modifier){
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .background(Color(0xFF101010))
             .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(0.dp)
-    ) {
+        horizontalArrangement = Arrangement.spacedBy(0.dp)){
         DashboardPeriod.entries.forEach { period ->
             val isSelected = selectedPeriod == period
             val bgColor by androidx.compose.animation.animateColorAsState(
@@ -828,13 +833,11 @@ private fun PeriodTabsRow(
 private fun RecentActivityHeader(
     hasTransactions: Boolean,
     onSeeAll: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+    modifier: Modifier = Modifier){
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+        verticalAlignment = Alignment.CenterVertically){
         Text(
             text = "Recent activity",
             style = MaterialTheme.typography.titleSmall,
@@ -849,8 +852,7 @@ private fun RecentActivityHeader(
                     .size(28.dp)
                     .clip(CircleShape)
                     .background(Accents.Amber.copy(alpha = 0.14f))
-                    .clickable(onClick = onSeeAll)
-            ) {
+                    .clickable(onClick = onSeeAll)){
                 Icon(
                     Icons.AutoMirrored.Outlined.ArrowForward,
                     contentDescription = "See all transactions",
@@ -862,71 +864,98 @@ private fun RecentActivityHeader(
     }
 }
 
-// ─── Transaction Item with Swipe-to-Delete ────────────────────────────────────
+// ─── Transaction Item — long-press to unlock, then drag left to delete ───────
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TransactionItem(
     transaction: Transaction,
     onClick: () -> Unit,
     onDelete: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) { onDelete(); true }
-            else false
-        }
+    modifier: Modifier = Modifier){
+    val haptic = LocalHapticFeedback.current
+    val density = LocalDensity.current
+    val deleteThresholdPx = with(density) { 96.dp.toPx() }
+
+    var rawOffsetX by remember { mutableFloatStateOf(0f) }
+    val animatedOffsetX by animateFloatAsState(
+        targetValue = rawOffsetX,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "item_offset",
+        finishedListener = { if (it == 0f) rawOffsetX = 0f }
+    )
+
+    val revealProgress = (-animatedOffsetX / deleteThresholdPx).coerceIn(0f, 1f)
+    val isPastThreshold = rawOffsetX < -deleteThresholdPx
+
+    val bgColor by animateColorAsState(
+        targetValue = if (isPastThreshold) Color(0xFF5C1A14) else Color(0xFF1E0C0A),
+        animationSpec = tween(180),
+        label = "swipe_bg"
     )
 
     val tone = categoryToneFor(transaction.category)
 
-    SwipeToDismissBox(
-        state = dismissState,
-        modifier = modifier,
-        enableDismissFromStartToEnd = false,
-        backgroundContent = {
-            Box(
+    Box(modifier = modifier.clip(RoundedCornerShape(20.dp))) {
+        // Delete background — revealed as card slides left
+        Box(
+            modifier = Modifier.matchParentSize().background(bgColor),
+            contentAlignment = Alignment.CenterEnd){
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFF3D1F1A)),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(end = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Icon(Icons.Outlined.Delete, "Delete", tint = Danger)
-                    Text("Delete", color = Danger, style = MaterialTheme.typography.labelLarge)
-                }
+                    .padding(end = 22.dp)
+                    .graphicsLayer {
+                        val scale = 0.6f + 0.4f * revealProgress
+                        scaleX = scale
+                        scaleY = scale
+                        alpha = revealProgress
+                    }){
+                Icon(Icons.Outlined.Delete, "Delete", tint = Danger, modifier = Modifier.size(20.dp))
+                Text("Delete", color = Danger, style = MaterialTheme.typography.labelLarge)
             }
         }
-    ) {
+
+        // Card — tappable normally, long-press-then-drag to delete
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxWidth()
+                .offset { IntOffset(animatedOffsetX.roundToInt(), 0) }
                 .clip(RoundedCornerShape(20.dp))
                 .background(BgElev1)
                 .clickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 14.dp)
-        ) {
+                .pointerInput(Unit) {
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = {
+                            // fires at long-press moment — tells user drag mode is active
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        },
+                        onDrag = { change, dragAmount ->
+                            change.consume()
+                            rawOffsetX = (rawOffsetX + dragAmount.x).coerceAtMost(0f)
+                            // second haptic snap when crossing delete threshold
+                            if (isPastThreshold) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        },
+                        onDragEnd = {
+                            if (isPastThreshold) onDelete()
+                            rawOffsetX = 0f
+                        },
+                        onDragCancel = { rawOffsetX = 0f }
+                    )
+                }
+                .padding(horizontal = 16.dp, vertical = 14.dp)){
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                // Category icon container with tone colors
+                modifier = Modifier.weight(1f)){
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(46.dp)
                         .clip(RoundedCornerShape(14.dp))
-                        .background(tone.bg)
-                ) {
+                        .background(tone.bg)){
                     Text(transaction.category.emoji, fontSize = 20.sp)
                 }
 
@@ -944,7 +973,6 @@ private fun TransactionItem(
                 }
             }
 
-            // Amount
             val amountColor = if (transaction.type == TransactionType.INCOME) Success else Danger
             val prefix = if (transaction.type == TransactionType.INCOME) "+ ₹" else "− ₹"
             Text(
