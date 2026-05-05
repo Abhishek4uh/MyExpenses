@@ -27,6 +27,10 @@ enum class ExpenseCategory(
     // ── Expense ──
     RENT("Rent", "🏠", "#FF6B6B"),
     COMMUTE("Commute", "🚇", "#4ECDC4"),
+    SMOG("Smog", "🌫️", "#7D8597"),
+    BREAKFAST("Breakfast", "🥐", "#FFB17A"),
+    LUNCH("Lunch", "🥪", "#88D982"),
+    DINNER("Dinner", "🍝", "#C97064"),
     DINEIN("Dine In", "🍱", "#FFE66D"),
     ONLINE_FOOD("Online Food", "📱", "#FF8C42"),
     GROCERY("Grocery", "🛒", "#A8DADC"),
@@ -43,6 +47,9 @@ enum class ExpenseCategory(
     SALARY("Salary", "💼", "#06D6A0"),
     FREELANCE("Freelance", "💻", "#118AB2"),
     POCKET_MONEY("Pocket Money", "💵", "#F2B23A"),
+    DIVIDEND("Dividend", "💹", "#5BC0BE"),
+    CASHBACK("Cashback", "💳", "#FFD166"),
+    CREDIT_INTEREST("Credit Interest", "🏦", "#93B7BE"),
     OTHER_INCOME("Other Income", "🎁", "#73D2DE")
 }
 

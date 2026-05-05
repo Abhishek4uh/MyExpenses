@@ -27,9 +27,16 @@ enum class CategoryGroup(
     val children: List<ExpenseCategory>,
 ) {
     FOOD("food", "Food", Icons.Outlined.Restaurant, CategoryTones.Food,
-        listOf(ExpenseCategory.DINEIN, ExpenseCategory.ONLINE_FOOD, ExpenseCategory.GROCERY)),
+        listOf(
+            ExpenseCategory.BREAKFAST,
+            ExpenseCategory.LUNCH,
+            ExpenseCategory.DINNER,
+            ExpenseCategory.DINEIN,
+            ExpenseCategory.ONLINE_FOOD,
+            ExpenseCategory.GROCERY,
+        )),
     TRANSPORT("transport", "Transport", Icons.Outlined.DirectionsBus, CategoryTones.Commute,
-        listOf(ExpenseCategory.COMMUTE)),
+        listOf(ExpenseCategory.COMMUTE, ExpenseCategory.SMOG)),
     LIVING("living", "Living", Icons.Outlined.Home, CategoryTones.Rent,
         listOf(ExpenseCategory.RENT)),
     HEALTH("health", "Health", Icons.Outlined.Favorite, CategoryTones.Healthcare,

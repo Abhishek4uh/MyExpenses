@@ -26,12 +26,15 @@ fun NavGraphBuilder.authGraph(navController: NavHostController) {
         startDestination = Auth.RegisterName.route){
         composable(
             route = Auth.RegisterName.route,
-            deepLinks = listOf(navDeepLink { uriPattern = Auth.RegisterName.deepLink })
-        ) {
+            deepLinks = listOf(navDeepLink {
+                uriPattern = Auth.RegisterName.deepLink
+            })){
             RegisterNameScreen(
                 onRegistrationComplete = {
-                    navController.navigate(Graph.Main.route) {
-                        popUpTo(Graph.Auth.route) { inclusive = true }
+                    navController.navigate(Graph.Main.route){
+                        popUpTo(Graph.Auth.route) {
+                            inclusive = true
+                        }
                     }
                 }
             )

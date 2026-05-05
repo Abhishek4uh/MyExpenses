@@ -14,8 +14,7 @@ import javax.inject.Singleton
 
 @Singleton
 class PreferencesRepositoryImpl @Inject constructor(
-    private val dataStore: DataStore<Preferences>
-) : PreferencesRepository {
+    private val dataStore: DataStore<Preferences>) : PreferencesRepository {
 
     private object Keys {
         val IS_DARK_THEME = booleanPreferencesKey("is_dark_theme")
@@ -81,18 +80,19 @@ class PreferencesRepositoryImpl @Inject constructor(
     override suspend fun updateInsightsRange(
         rangeKey: String,
         customStartEpochDay: Long?,
-        customEndEpochDay: Long?,
-    ) {
+        customEndEpochDay: Long?) {
         dataStore.edit { prefs ->
             prefs[Keys.INSIGHTS_RANGE] = rangeKey
             if (customStartEpochDay != null) {
                 prefs[Keys.INSIGHTS_CUSTOM_START] = customStartEpochDay
-            } else {
+            }
+            else {
                 prefs.remove(Keys.INSIGHTS_CUSTOM_START)
             }
             if (customEndEpochDay != null) {
                 prefs[Keys.INSIGHTS_CUSTOM_END] = customEndEpochDay
-            } else {
+            }
+            else {
                 prefs.remove(Keys.INSIGHTS_CUSTOM_END)
             }
         }

@@ -32,6 +32,9 @@ private val INCOME_CATEGORIES: Set<ExpenseCategory> = setOf(
     ExpenseCategory.SALARY,
     ExpenseCategory.FREELANCE,
     ExpenseCategory.POCKET_MONEY,
+    ExpenseCategory.DIVIDEND,
+    ExpenseCategory.CASHBACK,
+    ExpenseCategory.CREDIT_INTEREST,
     ExpenseCategory.OTHER_INCOME,
 )
 

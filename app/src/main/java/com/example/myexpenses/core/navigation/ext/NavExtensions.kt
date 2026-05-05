@@ -34,8 +34,7 @@ fun NavController.navigateToTab(item: BottomNavItem) {
  */
 fun NavController.navigateSafe(
     route: String,
-    builder: NavOptionsBuilder.() -> Unit = {}
-) {
+    builder: NavOptionsBuilder.() -> Unit) {
     if (currentDestination?.route != route) {
         navigate(route, builder)
     }
@@ -61,7 +60,8 @@ fun NavController.isTabSelected(graph: Graph): Boolean {
             ?.destination
             ?.hierarchy
         hierarchy?.any { it.route == graph.route } == true
-    } catch (e: Exception) {
+    }
+    catch (e: Exception) {
         false
     }
 }

@@ -52,8 +52,8 @@ fun RootNavGraph(
         startDestination = startDestination,
         route = "root",
         modifier = Modifier.fillMaxSize().background(BgBase),
-        enterTransition    = { fadeIn(tween(280, easing = FastOutSlowInEasing))},
-        exitTransition     = { fadeOut(tween(200)) },
+        enterTransition = { fadeIn(tween(280, easing = FastOutSlowInEasing))},
+        exitTransition = { fadeOut(tween(200)) },
         popEnterTransition = { fadeIn(tween(280, easing = FastOutSlowInEasing))},
         popExitTransition  = { fadeOut(tween(200))}){
 
@@ -66,12 +66,16 @@ fun RootNavGraph(
             SplashScreen(
                 onNavigateToOnboarding = {
                     navController.navigate(Graph.Onboarding.route) {
-                        popUpTo(TopLevel.Splash.route) { inclusive = true }
+                        popUpTo(TopLevel.Splash.route) {
+                            inclusive = true
+                        }
                     }
                 },
                 onNavigateToMain = {
                     navController.navigate(Graph.Main.route) {
-                        popUpTo(TopLevel.Splash.route) { inclusive = true }
+                        popUpTo(TopLevel.Splash.route) {
+                            inclusive = true
+                        }
                     }
                 }
             )
@@ -106,11 +110,10 @@ fun RootNavGraph(
                 navArgument(Args.TRANSACTION_ID) { type = NavType.StringType }
             ),
             deepLinks = listOf(navDeepLink { uriPattern = TopLevel.HomeDetail.deepLink }),
-            enterTransition    = { slideInVertically(tween(380, easing = FastOutSlowInEasing)) { it } + fadeIn(tween(280)) },
-            exitTransition     = { fadeOut(tween(150)) },
+            enterTransition = { slideInVertically(tween(380, easing = FastOutSlowInEasing)) { it } + fadeIn(tween(280))},
+            exitTransition = { fadeOut(tween(150)) },
             popEnterTransition = { fadeIn(tween(150)) },
-            popExitTransition  = { slideOutVertically(tween(320, easing = FastOutSlowInEasing)) { it } + fadeOut(tween(250)) },
-        ) { backStackEntry ->
+            popExitTransition  = { slideOutVertically(tween(320, easing = FastOutSlowInEasing)) { it } + fadeOut(tween(250))}){backStackEntry ->
             val id = backStackEntry.arguments?.getString(Args.TRANSACTION_ID) ?: return@composable
             HomeDetailScreen(
                 transactionId = id,
@@ -150,20 +153,30 @@ fun RootNavGraph(
         composable(
             route = TopLevel.CategoryDetail.route,
             arguments = listOf(
-                navArgument(Args.GROUP_ID) { type = NavType.StringType }
+                navArgument(Args.GROUP_ID) {
+                    type = NavType.StringType
+                }
             ),
-            deepLinks = listOf(navDeepLink { uriPattern = TopLevel.CategoryDetail.deepLink }),
+            deepLinks = listOf(
+                navDeepLink {
+                    uriPattern = TopLevel.CategoryDetail.deepLink
+                }),
             enterTransition = {
                 slideInVertically(tween(380, easing = FastOutSlowInEasing)) { it } + fadeIn(tween(280))
             },
-            exitTransition = { fadeOut(tween(150)) },
-            popEnterTransition = { fadeIn(tween(150)) },
+            exitTransition = {
+                fadeOut(tween(150))
+            },
+            popEnterTransition = {
+                fadeIn(tween(150))
+            },
             popExitTransition = {
                 slideOutVertically(tween(320, easing = FastOutSlowInEasing)) { it } + fadeOut(tween(250))
-            },
-        ) {
+            }){
             CategoryDetailScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
             )
         }
 
@@ -195,6 +208,5 @@ fun RootNavGraph(
                 }
             )
         }
-
     }
 }

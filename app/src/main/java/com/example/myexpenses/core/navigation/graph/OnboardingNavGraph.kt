@@ -15,7 +15,8 @@ fun NavGraphBuilder.onboardingGraph(navController: NavHostController) {
         startDestination = Onboarding.Welcome.route){
         composable(
             route = Onboarding.Welcome.route,
-            deepLinks = listOf(navDeepLink {
+            deepLinks = listOf(
+                navDeepLink {
                 uriPattern = Onboarding.Welcome.deepLink
             })){
             OnboardingScreen(

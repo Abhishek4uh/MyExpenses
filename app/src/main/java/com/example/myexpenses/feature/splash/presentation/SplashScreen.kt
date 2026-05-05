@@ -128,8 +128,7 @@ fun SplashScreen(
                         Brush.linearGradient(
                             colors = listOf(Accents.Amber, Color(0xFF1A8A48))
                         )
-                    )
-            ) {
+                    )){
                 Text(
                     text = "₹",
                     fontSize = 48.sp,

@@ -16,8 +16,7 @@ import javax.inject.Singleton
 @Singleton
 class TransactionRepositoryImpl @Inject constructor(
     private val transactionDao: TransactionDao,
-    private val pendingSmsDao: PendingSmsDao
-) : TransactionRepository {
+    private val pendingSmsDao: PendingSmsDao) : TransactionRepository {
 
     override suspend fun insertTransaction(transaction: Transaction) =
         transactionDao.insert(transaction.toEntity())
@@ -111,6 +110,5 @@ class TransactionRepositoryImpl @Inject constructor(
     override suspend fun deletePendingSmsTransaction(id: String) =
         pendingSmsDao.deleteById(id)
 
-    private fun daysInMonth(month: Int, year: Int): Int =
-        java.time.YearMonth.of(year, month).lengthOfMonth()
+    private fun daysInMonth(month: Int, year: Int): Int = java.time.YearMonth.of(year, month).lengthOfMonth()
 }

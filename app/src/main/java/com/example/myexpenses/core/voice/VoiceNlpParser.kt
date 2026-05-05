@@ -46,8 +46,21 @@ object VoiceNLPParser {
             "commute", "travel", "metro", "bus", "auto", "cab", "uber",
             "ola", "petrol", "fuel", "train", "ticket", "transport"
         ),
+        ExpenseCategory.SMOG to setOf(
+            "smog", "puc", "pollution check", "pollution under control",
+            "emission test", "emission check"
+        ),
+        ExpenseCategory.BREAKFAST to setOf(
+            "breakfast", "naashta", "nashta", "morning food"
+        ),
+        ExpenseCategory.LUNCH to setOf(
+            "lunch", "tiffin", "midday meal"
+        ),
+        ExpenseCategory.DINNER to setOf(
+            "dinner", "supper", "raat ka khana"
+        ),
         ExpenseCategory.DINEIN to setOf(
-            "dine in", "dinein", "dine-in", "lunch", "dinner", "breakfast",
+            "dine in", "dinein", "dine-in",
             "restaurant", "meal", "khana", "cafe", "diner"
         ),
         ExpenseCategory.ONLINE_FOOD to setOf(
@@ -92,7 +105,13 @@ object VoiceNLPParser {
         ExpenseCategory.SALARY to setOf("salary", "stipend", "paycheck", "tanchha"),
         ExpenseCategory.FREELANCE to setOf("freelance", "project payment", "client payment"),
         ExpenseCategory.POCKET_MONEY to setOf("pocket money", "pocketmoney", "kharcha", "allowance"),
-        ExpenseCategory.OTHER_INCOME to setOf("cashback", "refund", "bonus", "gift"),
+        ExpenseCategory.DIVIDEND to setOf("dividend", "dividends", "stock payout", "mutual fund payout"),
+        ExpenseCategory.CASHBACK to setOf("cashback", "cash back", "reward credit"),
+        ExpenseCategory.CREDIT_INTEREST to setOf(
+            "credit interest", "savings interest", "interest credited",
+            "fd interest", "fixed deposit interest"
+        ),
+        ExpenseCategory.OTHER_INCOME to setOf("refund", "bonus", "gift"),
         ExpenseCategory.MISCELLANEOUS to setOf("misc", "other", "random", "sundry")
     )
 
@@ -179,6 +198,9 @@ object VoiceNLPParser {
             ExpenseCategory.SALARY,
             ExpenseCategory.FREELANCE,
             ExpenseCategory.POCKET_MONEY,
+            ExpenseCategory.DIVIDEND,
+            ExpenseCategory.CASHBACK,
+            ExpenseCategory.CREDIT_INTEREST,
             ExpenseCategory.OTHER_INCOME -> TransactionType.INCOME
             else -> TransactionType.EXPENSE
         }

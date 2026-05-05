@@ -2,7 +2,7 @@ package com.example.myexpenses.core.domain
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import com.example.myexpenses.core.common.CategoryBreakdown
 import com.example.myexpenses.core.common.DailyAggregate
 import com.example.myexpenses.core.common.DashboardStats
@@ -16,6 +16,7 @@ import com.example.myexpenses.core.data.TransactionDao
 import com.example.myexpenses.core.data.TransactionRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import timber.log.Timber
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -24,14 +25,11 @@ import java.time.temporal.WeekFields
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
-import androidx.core.net.toUri
-import timber.log.Timber
 
 // ─── Add Transaction ──────────────────────────────────────────────────────────
 
 class AddTransactionUseCase @Inject constructor(
-    private val repository: TransactionRepository
-) {
+    private val repository: TransactionRepository) {
     suspend operator fun invoke(transaction: Transaction) {
         require(transaction.amount > 0) { "Amount must be greater than zero" }
         repository.insertTransaction(transaction)
@@ -41,8 +39,7 @@ class AddTransactionUseCase @Inject constructor(
 // ─── Get Dashboard Stats ──────────────────────────────────────────────────────
 
 class GetDashboardStatsUseCase @Inject constructor(
-    private val repository: TransactionRepository
-) {
+    private val repository: TransactionRepository){
     fun forToday(): Flow<DashboardStats> {
         val now = LocalDateTime.now()
         val startOfDay = now.toLocalDate().atStartOfDay()
@@ -75,8 +72,7 @@ class GetDashboardStatsUseCase @Inject constructor(
 // ─── Get Weekly Chart Data ────────────────────────────────────────────────────
 
 class GetWeeklyChartDataUseCase @Inject constructor(
-    private val repository: TransactionRepository
-) {
+    private val repository: TransactionRepository){
     operator fun invoke(): Flow<List<DailyAggregate>> {
         val weekFields = WeekFields.of(Locale.getDefault())
         val today = LocalDate.now()
@@ -89,8 +85,7 @@ class GetWeeklyChartDataUseCase @Inject constructor(
 // ─── Get Monthly Chart Data ───────────────────────────────────────────────────
 
 class GetMonthlyChartDataUseCase @Inject constructor(
-    private val repository: TransactionRepository
-) {
+    private val repository: TransactionRepository){
     operator fun invoke(month: Int, year: Int): Flow<List<DailyAggregate>> {
         val start = LocalDateTime.of(year, month, 1, 0, 0)
         val end = start.withDayOfMonth(
@@ -103,8 +98,7 @@ class GetMonthlyChartDataUseCase @Inject constructor(
 // ─── Get Yearly Chart Data ────────────────────────────────────────────────────
 
 class GetYearlyChartDataUseCase @Inject constructor(
-    private val repository: TransactionRepository
-) {
+    private val repository: TransactionRepository){
     operator fun invoke(year: Int): Flow<List<MonthlyAggregate>> {
         return repository.getMonthlyAggregates(year)
     }
@@ -113,8 +107,7 @@ class GetYearlyChartDataUseCase @Inject constructor(
 // ─── Get Category Breakdown ───────────────────────────────────────────────────
 
 class GetCategoryBreakdownUseCase @Inject constructor(
-    private val repository: TransactionRepository
-) {
+    private val repository: TransactionRepository){
     fun forCurrentMonth(type: TransactionType): Flow<List<CategoryBreakdown>> {
         val now = LocalDate.now()
         val start = now.withDayOfMonth(1).atStartOfDay()
@@ -126,29 +119,22 @@ class GetCategoryBreakdownUseCase @Inject constructor(
 // ─── Get Recent Transactions ──────────────────────────────────────────────────
 
 class GetRecentTransactionsUseCase @Inject constructor(
-    private val repository: TransactionRepository
-) {
-    operator fun invoke(): Flow<List<Transaction>> =
-        repository.getAllTransactions()
+    private val repository: TransactionRepository){
+    operator fun invoke(): Flow<List<Transaction>> = repository.getAllTransactions()
 }
 
 // ─── Get Transaction By ID ────────────────────────────────────────────────────
 
 class GetTransactionByIdUseCase @Inject constructor(
-    private val repository: TransactionRepository
-) {
-    operator fun invoke(id: String): Flow<Transaction?> =
-        repository.getTransactionById(id)
+    private val repository: TransactionRepository){
+    operator fun invoke(id: String): Flow<Transaction?> = repository.getTransactionById(id)
 }
 
 // ─── Delete Transaction ───────────────────────────────────────────────────────
 
 class DeleteTransactionUseCase @Inject constructor(
-    private val repository: TransactionRepository
-) {
-    suspend operator fun invoke(id: String) {
-        repository.deleteTransaction(id)
-    }
+    private val repository: TransactionRepository){
+    suspend operator fun invoke(id: String) = repository.deleteTransaction(id)
 }
 
 // ─── Get Streak ───────────────────────────────────────────────────────────────
@@ -156,12 +142,10 @@ class DeleteTransactionUseCase @Inject constructor(
 @Singleton
 class GetStreakUseCase @Inject constructor(
     private val dao: TransactionDao,
-    private val prefs: PreferencesRepository,
-) {
+    private val prefs: PreferencesRepository){
     operator fun invoke(): Flow<StreakData> = combine(
         dao.getDistinctActiveDays(),
-        prefs.getRegistrationEpochMs(),
-    ) { dayStrings, regMs ->
+        prefs.getRegistrationEpochMs()){ dayStrings, regMs ->
         val activeDays = dayStrings.mapNotNullTo(mutableSetOf()) {
             runCatching { LocalDate.parse(it) }.getOrNull()
         }
@@ -187,12 +171,10 @@ class GetStreakUseCase @Inject constructor(
 // ─── Confirm Pending SMS Transaction ─────────────────────────────────────────
 
 class ConfirmSmsTransactionUseCase @Inject constructor(
-    private val repository: TransactionRepository
-) {
+    private val repository: TransactionRepository){
     suspend operator fun invoke(
         pending: PendingSmsTransaction,
-        confirmedTransaction: Transaction
-    ) {
+        confirmedTransaction: Transaction){
         repository.insertTransaction(confirmedTransaction)
         repository.deletePendingSmsTransaction(pending.id)
     }

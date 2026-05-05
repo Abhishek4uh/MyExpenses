@@ -556,10 +556,10 @@ private fun ManualEntryScreen(
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Category", style = MaterialTheme.typography.labelMedium, color = AppColors.TextSecondary)
                 val categories = if (viewModel.selectedType == TransactionType.INCOME) {
-                    listOf(ExpenseCategory.SALARY, ExpenseCategory.FREELANCE, ExpenseCategory.POCKET_MONEY, ExpenseCategory.OTHER_INCOME)
+                    listOf(ExpenseCategory.SALARY, ExpenseCategory.FREELANCE, ExpenseCategory.POCKET_MONEY, ExpenseCategory.DIVIDEND, ExpenseCategory.CASHBACK, ExpenseCategory.CREDIT_INTEREST, ExpenseCategory.OTHER_INCOME)
                 } else {
                     ExpenseCategory.entries.filter {
-                        it !in listOf(ExpenseCategory.SALARY, ExpenseCategory.FREELANCE, ExpenseCategory.POCKET_MONEY, ExpenseCategory.OTHER_INCOME)
+                        it !in listOf(ExpenseCategory.SALARY, ExpenseCategory.FREELANCE, ExpenseCategory.POCKET_MONEY, ExpenseCategory.DIVIDEND, ExpenseCategory.CASHBACK, ExpenseCategory.CREDIT_INTEREST, ExpenseCategory.OTHER_INCOME)
                     }
                 }
                 Row(
@@ -993,9 +993,9 @@ private fun EditTransactionDialog(
     var selectedCategory by remember { mutableStateOf(initial.category) }
     val isIncome = initial.type == TransactionType.INCOME
     val categories = remember(isIncome) {
-        if (isIncome) listOf(ExpenseCategory.SALARY, ExpenseCategory.FREELANCE, ExpenseCategory.POCKET_MONEY, ExpenseCategory.OTHER_INCOME)
+        if (isIncome) listOf(ExpenseCategory.SALARY, ExpenseCategory.FREELANCE, ExpenseCategory.POCKET_MONEY, ExpenseCategory.DIVIDEND, ExpenseCategory.CASHBACK, ExpenseCategory.CREDIT_INTEREST, ExpenseCategory.OTHER_INCOME)
         else ExpenseCategory.entries.filter {
-            it !in listOf(ExpenseCategory.SALARY, ExpenseCategory.FREELANCE, ExpenseCategory.POCKET_MONEY, ExpenseCategory.OTHER_INCOME)
+            it !in listOf(ExpenseCategory.SALARY, ExpenseCategory.FREELANCE, ExpenseCategory.POCKET_MONEY, ExpenseCategory.DIVIDEND, ExpenseCategory.CASHBACK, ExpenseCategory.CREDIT_INTEREST, ExpenseCategory.OTHER_INCOME)
         }
     }
     val canSave = amountText.toDoubleOrNull()?.let { it > 0 } == true

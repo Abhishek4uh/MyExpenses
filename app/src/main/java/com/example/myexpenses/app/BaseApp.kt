@@ -39,7 +39,8 @@ class BaseApp : Application() {
                     reminderScheduler.enable()
                     Timber.tag("BaseApp").d("re-armed reminder alarms on startup")
                 }
-            } catch (e: Exception) {
+            }
+            catch (e: Exception) {
                 Timber.tag("BaseApp").e(e, "failed to re-arm reminders")
             }
         }
